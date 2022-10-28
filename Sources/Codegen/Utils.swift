@@ -9,3 +9,24 @@ extension FileManager {
         return false
     }
 }
+
+struct UnitStringType<Tag>:
+    RawRepresentable,
+    Equatable,
+    Hashable,
+    CustomStringConvertible,
+    LosslessStringConvertible
+{
+    init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+    init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    var rawValue: String
+
+    var description: String {
+        rawValue.description
+    }
+}
