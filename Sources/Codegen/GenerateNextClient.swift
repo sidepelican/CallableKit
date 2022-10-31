@@ -180,7 +180,14 @@ export const build\(stype.serviceName)Client = (raw: IRawClient): I\(stype.servi
                 continue
             }
 
-            let tsCode = try generator.generateTypeDeclarationFile(type: stype)
+            var tsDecls: [TSDecl] = []
+            func walk(stype: SType) throws {
+                tsDecls += try generator.generateTypeOwnDeclarations(type: stype).decls
+                for stype in stype.regular?.types ?? [] {
+                    try walk(stype: stype)
+                }
+            }
+            try walk(stype: stype)
 
             let dependencyScanner = DependencyScanner(
                 knownNames: CodeGenerator.defaultKnownNames
@@ -189,19 +196,16 @@ export const build\(stype.serviceName)Client = (raw: IRawClient): I\(stype.servi
 
             // 使用したっぽい型を記録
             usedTypes.formUnion(
-                dependencyScanner.scan(code: tsCode).map { TSIdentifier($0) }
+                dependencyScanner
+                    .scan(code: TSCode(tsDecls.map { .decl($0) }))
+                    .map { TSIdentifier($0) }
             )
 
             // 型定義とjson変換関数だけを抜き出し
-            let tsDecls = tsCode.items
-                .compactMap { item -> TSBlockItem? in
-                    if case .import = item.decl {
-                        return nil
-                    }
-                    return item
-                }
-                .map { $0.description.trimmingCharacters(in: .whitespacesAndNewlines) }
-            codes.append(contentsOf: tsDecls)
+            codes.append(
+                contentsOf: tsDecls
+                    .map { $0.description.trimmingCharacters(in: .whitespacesAndNewlines) }
+            )
         }
 
         if codes.isEmpty { return nil }
