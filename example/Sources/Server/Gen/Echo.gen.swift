@@ -14,6 +14,9 @@ struct EchoServiceProvider<RequestHandler: RawRequestHandler, Service: EchoServi
             group.post("hello", use: requestHandler.makeHandler(serviceBuilder) { s, r in
                 try await s.hello(request: r)
             })
+            group.post("testComplexType", use: requestHandler.makeHandler(serviceBuilder) { s, r in
+                try await s.testComplexType(request: r)
+            })
         }
     }
 }
