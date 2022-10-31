@@ -103,7 +103,7 @@ export interface I\(stype.serviceName)Client {
 \(try stype.functions.map { f in
     let res = try f.response.map { try typeMap.tsName(stype: $0.raw) } ?? .void
     return """
-  \(f.name)(\(try f.request.map { "\($0.argName): \(try typeMap.tsName(stype: $0.raw))" } ?? "")): Promise<\(res)>
+  \(f.name)(\(try f.request.map { "\($0.argName): \(try typeMap.tsJsonName(stype: $0.raw))" } ?? "")): Promise<\(res)>
 """ }.joined(separator: "\n"))
 }
 """)
@@ -141,7 +141,7 @@ export interface I\(stype.serviceName)Client {
                 }
 
                 return """
-              async \(f.name)(\(try f.request.map { "\($0.argName): \(try typeMap.tsName(stype: $0.raw))" } ?? "")): Promise<\(res)> {
+              async \(f.name)(\(try f.request.map { "\($0.argName): \(try typeMap.tsJsonName(stype: $0.raw))" } ?? "")): Promise<\(res)> {
             \(blockBody)
               }
             """ }.joined(separator: "\n")
@@ -264,14 +264,19 @@ export const build\(stype.serviceName)Client = (raw: IRawClient): I\(stype.servi
 
 extension TypeMap {
     fileprivate func tsName(stype: SType) throws -> TSIdentifier {
-        let tsType = try CodeGenerator(typeMap: self).transpileTypeReference(type: stype)
-        var name = tsType.description
-        if name.hasSuffix("JSON") {
-            name = String(name.dropLast(4))
-        } else if name.hasSuffix(">") {
-            name = name.replacingOccurrences(of: "JSON", with: "") // CodableResultJSON<foo, bar> など、Genericな場合はJSONがまちまちに出現しうるので雑に消す
-        }
-        return TSIdentifier(name)
+        let tsType = try TypeConverter(typeMap: self).transpileTypeReference(
+            stype,
+            kind: .type
+        )
+        return .init(tsType.description)
+    }
+
+    fileprivate func tsJsonName(stype: SType) throws -> TSIdentifier {
+        let tsType = try TypeConverter(typeMap: self).transpileTypeReference(
+            stype,
+            kind: .json
+        )
+        return .init(tsType.description)
     }
 }
 
