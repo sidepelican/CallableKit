@@ -1,4 +1,4 @@
-import CodableToTypeScript
+@testable import CodableToTypeScript
 import Foundation
 import SwiftTypeReader
 import TSCodeModule
@@ -11,12 +11,20 @@ class ImportMap {
 
     var defs: [Def] = []
     func insert(type: SType, file: String, typeMap: TypeMap) throws {
-        let name = try typeMap.tsName(stype: type)
-        // enumの場合は特別にDecode用関数も追加
-        if type.enum != nil {
-            defs.append((TSIdentifier(name.rawValue + "Decode"), file))
+        let generator = CodeGenerator(typeMap: typeMap)
+
+        let tsType = try generator.transpileTypeReference(type: type)
+        defs.append((TSIdentifier(tsType.description), file))
+
+        let tsJsonType = try TypeConverter(typeMap: typeMap).transpileTypeReference(type, kind: .json)
+        defs.append((TSIdentifier(tsJsonType.description), file))
+
+        let tsDecls = try TypeConverter(typeMap: typeMap).convert(type: type)
+        for tsDecl in tsDecls {
+            if case .function(let tsFunctionType) = tsDecl {
+                defs.append((TSIdentifier(tsFunctionType.name), file))
+            }
         }
-        defs.append((name, file))
     }
 
     func file(for typeName: TSIdentifier) -> String? {
@@ -55,6 +63,11 @@ struct GenerateNextClient {
     var dstDirectory: URL
     private let importMap = ImportMap(defs: [
         (TSIdentifier("IRawClient"), "common.gen.ts"),
+        (TSIdentifier("identity"), "decode.gen.ts"),
+        (TSIdentifier("OptionalField_decode"), "decode.gen.ts"),
+        (TSIdentifier("Optional_decode"), "decode.gen.ts"),
+        (TSIdentifier("Array_decode"), "decode.gen.ts"),
+        (TSIdentifier("Dictionary_decode"), "decode.gen.ts"),
     ])
 
     private let typeMap: TypeMap = {
@@ -78,6 +91,7 @@ export interface IRawClient {
     }
 
     private func processFile(file: Generator.InputFile) throws -> String? {
+        let typeConverter = TypeConverter(typeMap: typeMap)
         let outputFile = Self.outputFilename(for: file.name)
 
         var codes: [String] = []
@@ -95,23 +109,40 @@ export interface I\(stype.serviceName)Client {
 """)
 
             let functionsDecls = try stype.functions.map { f in
-                let outputType = try f.raw.outputType()
                 let res = try f.response.map { try typeMap.tsName(stype: $0.raw) } ?? .void
 
-                if outputType?.enum != nil {
-                    usedTypes.insert(TSIdentifier("\(outputType!.name)Decode")) // 使用したっぽい関数を記録
+                let fetchExpr = "this.rawClient.fetch(\(f.request?.argName ?? "{}"), \"\(stype.serviceName)/\(f.name)\")"
+
+                let blockBody: String
+                if let sRes = f.response?.raw,
+                   let decodeFunc = try typeConverter.result(for: sRes)?.decodeFunc {
+                    let jsonTsType = try typeConverter.transpileTypeReference(sRes, kind: .json)
+                    let decodeExpr = try typeConverter.decodeFunction().decodeValue(type: sRes, expr: .identifier("json"))
+
+                    blockBody = """
+    const json = await \(fetchExpr) as \(jsonTsType)
+    return \(decodeExpr)
+"""
+                    // 使用した関数を記録
+                    usedTypes.insert(TSIdentifier(decodeFunc.name))
+                    usedTypes.formUnion(unwrapGenerics(typeName: TSIdentifier(jsonTsType.description)))
+                    if case .call(let tsCallExpr) = decodeExpr {
+                        usedTypes.formUnion(
+                            tsCallExpr.arguments
+                                .filter { $0.expr.description != "json" }
+                                .map { $0.description }
+                                .map { TSIdentifier($0) }
+                        )
+                    }
+                } else {
+                    blockBody = """
+    return await \(fetchExpr) as \(res)
+"""
                 }
 
                 return """
               async \(f.name)(\(try f.request.map { "\($0.argName): \(try typeMap.tsName(stype: $0.raw))" } ?? "")): Promise<\(res)> {
-            \(outputType?.enum != nil
-              ? """
-                const json = await this.rawClient.fetch(\(f.request?.argName ?? "{}"), "\(stype.serviceName)/\(f.name)") as \(res)
-                return \(outputType!.name)Decode(json)
-            """
-              : """
-                return await this.rawClient.fetch(\(f.request?.argName ?? "{}"), "\(stype.serviceName)/\(f.name)") as \(res)
-            """)
+            \(blockBody)
               }
             """ }.joined(separator: "\n")
 
@@ -140,6 +171,7 @@ export const build\(stype.serviceName)Client = (raw: IRawClient): I\(stype.servi
             }))
         }
 
+        // Request・Response型定義の出力
         for stype in file.module.types {
             guard stype.struct != nil
                     || (stype.enum != nil && !stype.enum!.caseElements.isEmpty)
@@ -148,26 +180,26 @@ export const build\(stype.serviceName)Client = (raw: IRawClient): I\(stype.servi
                 continue
             }
 
-            let tsCode = try CodeGenerator(
+            let generator = CodeGenerator(
                 typeMap: typeMap,
                 standardTypes: CodeGenerator.defaultStandardTypes
                     .union(importMap.typeNames(for: outputFile).map(\.rawValue))
-            ).generateTypeDeclarationFile(type: stype)
+            )
+            let tsCode = try generator.generateTypeDeclarationFile(type: stype)
 
             // 使用したっぽい型を記録
             usedTypes.formUnion(
-                tsCode.decls.compactMap {
-                    if case .typeDecl(let v) = $0 { return v } else { return nil }
-                }
-                    .flatMap { (tsTypeDecl: TSTypeDecl) in
-                        findTypes(in: tsTypeDecl.type)
-                    }
+                generator.scanDependency(code: tsCode).map { TSIdentifier($0) }
             )
 
             // 型定義とjson変換関数だけを抜き出し
-            let tsDecls = tsCode.decls.filter {
-                if case .importDecl = $0 { return false } else { return true }
-            }
+            let tsDecls = tsCode.items
+                .compactMap { item -> TSBlockItem? in
+                    if case .import = item.decl {
+                        return nil
+                    }
+                    return item
+                }
                 .map { $0.description.trimmingCharacters(in: .whitespacesAndNewlines) }
             codes.append(contentsOf: tsDecls)
         }
@@ -202,6 +234,12 @@ export const build\(stype.serviceName)Client = (raw: IRawClient): I\(stype.servi
                 content: generateCommon()
             )
             try write(file: common)
+
+            let decoderHelper = Generator.OutputFile(
+                name: "decode.gen.ts",
+                content: CodeGenerator().generateHelperLibrary().description
+            )
+            try write(file: decoderHelper)
 
             // 1st pass
             for inputFile in input.files {
@@ -251,23 +289,22 @@ extension TSIdentifier {
     static var void: Self { .init("void") }
 }
 
-fileprivate func findTypes(in tsType: TSType) -> [TSIdentifier] {
-    let typenames: [TSIdentifier]
-    switch tsType {
-    case .array(let array):
-        typenames = findTypes(in: array.element)
-    case .dictionary(let dictionary):
-        typenames = findTypes(in: dictionary.element)
-    case .named(let named):
-        typenames = [TSIdentifier(named.description)]
-    case .nested(let nested):
-        typenames = [TSIdentifier(nested.description)]
-    case .record(let record):
-        typenames = record.fields.flatMap { findTypes(in: $0.type) }
-    case .stringLiteral:
-        typenames = []
-    case .union(let union):
-        typenames = union.items.flatMap { findTypes(in: $0) }
+extension TypeConverter {
+    func result(for type: SType) throws -> TypeConverter.TypeResult? {
+        guard let type = type.regular else {
+            return nil
+        }
+
+        switch type {
+        case .enum(let type):
+            let result = try EnumConverter(converter: self).convert(type: type)
+            return result
+        case .struct(let type):
+            let result = try StructConverter(converter: self).convert(type: type)
+            return result
+        case .protocol,
+                .genericParameter:
+            return nil
+        }
     }
-    return typenames.flatMap(unwrapGenerics(typeName:))
 }
