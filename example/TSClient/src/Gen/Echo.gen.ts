@@ -1,25 +1,35 @@
-import { IRawClient } from "./common.gen.js";
-import { Array_decode, OptionalField_decode, Optional_decode, identity } from "./decode.gen.js";
+import {
+    IRawClient
+} from "./common.gen.js";
+
+import {
+    Array_decode,
+    OptionalField_decode,
+    Optional_decode,
+    identity
+} from "./decode.gen.js";
 
 export interface IEchoClient {
-  hello(request: EchoHelloRequest): Promise<EchoHelloResponse>
-  testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response>
+    hello(request: EchoHelloRequest): Promise<EchoHelloResponse>;
+
+    testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response>;
 }
 
 class EchoClient implements IEchoClient {
-  rawClient: IRawClient;
+    rawClient: IRawClient;
 
-  constructor(rawClient: IRawClient) {
-    this.rawClient = rawClient;
-  }
+    constructor(rawClient: IRawClient) {
+        this.rawClient = rawClient;
+    }
 
-  async hello(request: EchoHelloRequest): Promise<EchoHelloResponse> {
-    return await this.rawClient.fetch(request, "Echo/hello") as EchoHelloResponse
-  }
-  async testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response> {
-    const json = await this.rawClient.fetch(request, "Echo/testComplexType") as TestComplexType_Response_JSON
-    return TestComplexType_Response_decode(json)
-  }
+    async hello(request: EchoHelloRequest): Promise<EchoHelloResponse> {
+        return await this.rawClient.fetch(request, "Echo/hello") as EchoHelloResponse;
+    }
+
+    async testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response> {
+        const json = await this.rawClient.fetch(request, "Echo/testComplexType") as TestComplexType_Response_JSON;
+        return TestComplexType_Response_decode(json);
+    }
 }
 
 export const buildEchoClient = (raw: IRawClient): IEchoClient => new EchoClient(raw);
