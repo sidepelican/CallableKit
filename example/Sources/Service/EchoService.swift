@@ -10,4 +10,8 @@ struct EchoService: EchoServiceProtocol {
             message: "Hello, \(request.name)!"
         )
     }
+
+    func testComplexType(request: TestComplexType.Request) async throws -> TestComplexType.Response {
+        .init(a: request.a)
+    }
 }
