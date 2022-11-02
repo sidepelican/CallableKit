@@ -24,6 +24,9 @@ enum CodegenError: Error {
     @Argument(help: "directory path of definition codes", completion: .directory)
     var definitionDirectory: URL
 
+    @Flag(help: "use import decl of Next.js style")
+    var nextjs: Bool = false
+
     mutating func run() throws {
         let moduleName = definitionDirectory
             .resolvingSymlinksInPath()
@@ -62,9 +65,10 @@ enum CodegenError: Error {
         }
 
         if let ts_out = ts_out {
-            try GenerateNextClient(
+            try GenerateTSClient(
                 srcDirectory: definitionDirectory,
-                dstDirectory: ts_out
+                dstDirectory: ts_out,
+                nextjs: nextjs
             ).run()
         }
     }

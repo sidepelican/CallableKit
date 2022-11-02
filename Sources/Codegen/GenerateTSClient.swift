@@ -29,9 +29,11 @@ class ImportMap {
     }
 }
 
-struct GenerateNextClient {
+struct GenerateTSClient {
     var srcDirectory: URL
     var dstDirectory: URL
+    var nextjs: Bool
+
     private let importMap = ImportMap(defs: [
         (TSIdentifier("IRawClient"), "common.gen.ts"),
         (TSIdentifier("identity"), "decode.gen.ts"),
@@ -220,7 +222,11 @@ export interface IRawClient {
             let names = nameMap[file] ?? []
             var file = file
             if file.hasSuffix(".ts") {
-                file = "./" + (file as NSString).deletingPathExtension + ".js"
+                if nextjs {
+                    file = "./" + (file as NSString).deletingPathExtension
+                } else {
+                    file = "./" + (file as NSString).deletingPathExtension + ".js"
+                }
             }
             return TSImportDecl(names: names, from: file)
         }
