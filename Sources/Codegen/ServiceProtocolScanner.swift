@@ -50,8 +50,11 @@ enum ServiceProtocolScanner {
                 request: fdecl.parameters.first.map {
                     .init(argName: $0.name, typeName: $0.unresolvedType.description, raw: try! $0.type())
                 },
-                response: try! fdecl.outputType().map {
-                    .init(typeName: $0.name, raw: $0)
+                response: try! fdecl.unresolvedOutputType.map {
+                    .init(
+                        typeName: $0.description,
+                        raw: try $0.resolved()  // INFO: 後段の利用のために先にresolveする。 https://github.com/omochi/CodableToTypeScript/issues/23
+                    )
                 },
                 raw: fdecl
             )
