@@ -27,32 +27,6 @@ class ImportMap {
     func file(for typeName: TSIdentifier) -> String? {
         defs.first(where: { $0.typeName == typeName })?.fileName
     }
-
-    func typeNames(for file: String) -> [TSIdentifier] {
-        defs.filter { $0.fileName == file }.map(\.typeName)
-    }
-
-    func importDecls(forTypes types: [TSIdentifier], for file: String) -> [String] {
-        var filesTypesTable: [String: [TSIdentifier]] = [:]
-        for type in types {
-            guard let typefile = self.file(for: type), typefile != file else { continue }
-            filesTypesTable[typefile, default: []].append(type)
-        }
-
-        return filesTypesTable.sorted(using: KeyPathComparator(\.key)).map { (file: String, types: [TSIdentifier]) in
-            let file = file.replacingOccurrences(of: ".ts", with: "")
-            let importSymbols = types
-                .map(\.rawValue)
-                .map { (s: String) in
-                    // 名前空間つきの型名だった場合は名前空間の根本の単位でしかimportできないので調整する
-                    if s.contains(".") {
-                        return String(s.split(separator: ".")[0])
-                    }
-                    return s
-                }
-            return "import { \(Set(importSymbols).sorted().joined(separator: ", ")) } from \"./\(file).js\";"
-        }
-    }
 }
 
 struct GenerateNextClient {
@@ -91,84 +65,121 @@ export interface IRawClient {
         generator: CodeGenerator,
         file: Generator.InputFile
     ) throws -> String? {
-        let outputFile = Self.outputFilename(for: file.name)
-
-        var codes: [String] = []
-        var usedTypes: Set<TSIdentifier> = []
+        var codes: [TSDecl] = []
 
         for stype in file.module.types.compactMap(ServiceProtocolScanner.scan) {
-            codes.append("""
-export interface I\(stype.serviceName)Client {
-\(try stype.functions.map { f in
-    let res = try f.response.map { try generator.tsName(stype: $0.raw) } ?? .void
-    return """
-  \(f.name)(\(try f.request.map { "\($0.argName): \(try generator.tsJsonName(stype: $0.raw))" } ?? "")): Promise<\(res)>
-""" }.joined(separator: "\n"))
-}
-""")
+            let clientInterface = TSInterfaceDecl(
+                name: "I\(stype.serviceName)Client",
+                decls: try stype.functions.map { (f) in
+                    let res: TSType = try f.response.map { try generator.transpileTypeReference(type: $0.raw) } ?? .named("void")
+                    let method = TSMethodDecl(
+                        name: f.name,
+                        parameters: try f.request.map {
+                            [.init(name: $0.argName, type: try generator.transpileTypeReferenceToJSON(type: $0.raw))]
+                        } ?? [],
+                        returnType: .named("Promise", genericArguments: [.init(res)]),
+                        items: nil
+                    )
+                    return .method(method)
+                }
+            )
+            codes.append(.interface(clientInterface))
 
-            let functionsDecls = try stype.functions.map { f in
-                let res = try f.response.map { try generator.tsName(stype: $0.raw) } ?? .void
+            let functionsDecls: [TSMethodDecl] = try stype.functions.map { f in
+                let res: TSType = try f.response.map { try generator.transpileTypeReference(type: $0.raw) } ?? .named("void")
 
-                let fetchExpr = "this.rawClient.fetch(\(f.request?.argName ?? "{}"), \"\(stype.serviceName)/\(f.name)\")"
+                let fetchExpr: TSExpr = .call(
+                    callee: .memberAccess(
+                        base: .memberAccess(
+                            base: .identifier("this"),
+                            name: "rawClient"
+                        ),
+                        name: "fetch"
+                    ),
+                    arguments: [
+                        .init(f.request.map { .identifier($0.argName) } ?? .object([])),
+                        .init(.stringLiteral("\(stype.serviceName)/\(f.name)"))
+                    ]
+                )
 
-                let blockBody: String
+                let blockBody: [TSBlockItem]
                 if let sRes = f.response?.raw,
-                   let decodeFunc = try generator.generateDecodeFunction(type: sRes)
+                   try generator.hasTranspiledJSONType(type: sRes)
                 {
                     let jsonTsType = try generator.transpileTypeReferenceToJSON(type: sRes)
                     let decodeExpr = try generator.generateDecodeValueExpression(type: sRes, expr: .identifier("json"))
 
-                    blockBody = """
-    const json = await \(fetchExpr) as \(jsonTsType)
-    return \(decodeExpr)
-"""
-                    // 使用した関数を記録
-                    usedTypes.insert(TSIdentifier(decodeFunc.name))
-                    usedTypes.formUnion(unwrapGenerics(typeName: TSIdentifier(jsonTsType.description)))
-                    if case .call(let tsCallExpr) = decodeExpr {
-                        usedTypes.formUnion(
-                            tsCallExpr.arguments
-                                .filter { $0.expr.description != "json" }
-                                .map { $0.description }
-                                .map { TSIdentifier($0) }
-                        )
-                    }
+                    blockBody = [
+                        .decl(.var(
+                            kind: "const", name: "json",
+                            initializer: .prefixOperator(
+                                "await",
+                                .infixOperator(fetchExpr, "as", .type(jsonTsType))
+                            )
+                        )),
+                        .stmt(.return(decodeExpr))
+                    ]
                 } else {
-                    blockBody = """
-    return await \(fetchExpr) as \(res)
-"""
+                    blockBody = [
+                        .stmt(.return(
+                            .prefixOperator(
+                                "await",
+                                .infixOperator(fetchExpr, "as", .type(res))
+                            )
+                        ))
+                    ]
                 }
 
-                return """
-              async \(f.name)(\(try f.request.map { "\($0.argName): \(try generator.tsJsonName(stype: $0.raw))" } ?? "")): Promise<\(res)> {
-            \(blockBody)
-              }
-            """ }.joined(separator: "\n")
+                return TSMethodDecl(
+                    modifiers: ["async"],
+                    name: f.name,
+                    parameters: try f.request.map {
+                        [.init(
+                            name: $0.argName,
+                            type: try generator.transpileTypeReferenceToJSON(type: $0.raw)
+                        ) ]
+                    } ?? [],
+                    returnType: .named("Promise", genericArguments: [.init(res)]),
+                    items: blockBody
+                )
+            }
 
-            codes.append("""
-class \(stype.serviceName)Client implements I\(stype.serviceName)Client {
-  rawClient: IRawClient;
+            let clientClass = TSClassDecl(
+                export: false,
+                name: "\(stype.serviceName)Client",
+                implements: [.named(clientInterface.name)],
+                items: [
+                    .decl(.field(TSFieldDecl(
+                        name: "rawClient", type: .named("IRawClient"))
+                    )),
+                    .decl(.method(TSMethodDecl(
+                        name: "constructor",
+                        parameters: [.init(name: "rawClient", type: .named("IRawClient"))],
+                        returnType: nil,
+                        items: [
+                            .expr(.infixOperator(
+                                .memberAccess(base: .identifier("this"), name: "rawClient"),
+                                "=", .identifier("rawClient")
+                            ))
+                        ]
+                    )))
+                ] + functionsDecls.map { .decl(.method($0)) }
+            )
+            codes.append(.class(clientClass))
 
-  constructor(rawClient: IRawClient) {
-    this.rawClient = rawClient;
-  }
-
-\(functionsDecls)
-}
-""")
-            codes.append("""
-export const build\(stype.serviceName)Client = (raw: IRawClient): I\(stype.serviceName)Client => new \(stype.serviceName)Client(raw);
-""")
-
-            // 使用したっぽい型を記録
-            usedTypes.formUnion(try stype.functions.flatMap({ f in
-                [
-                    TSIdentifier("IRawClient"),
-                    try f.request.map { try generator.tsName(stype: $0.raw) },
-                    try f.response.map { try generator.tsName(stype: $0.raw) },
-                ].compactMap { $0 }.flatMap(unwrapGenerics(typeName:))
-            }))
+            codes.append(.var(
+                export: true,
+                kind: "const", name: "build\(stype.serviceName)Client",
+                initializer: .closure(
+                    parameters: [.init(name: "raw", type: .named("IRawClient"))],
+                    returnType: .named(clientInterface.name),
+                    body: .expr(.new(
+                        callee: .identifier("\(stype.serviceName)Client"),
+                        arguments: [.init(.identifier("raw"))]
+                    ))
+                ),
+                wantsTrailingNewline: true
+            ))
         }
 
         // Request・Response型定義の出力
@@ -180,48 +191,43 @@ export const build\(stype.serviceName)Client = (raw: IRawClient): I\(stype.servi
                 continue
             }
 
-            var tsDecls: [TSDecl] = []
+            // 型定義とjson変換関数だけを抜き出し
             func walk(stype: SType) throws {
-                tsDecls += try generator.generateTypeOwnDeclarations(type: stype).decls
+                codes += try generator.generateTypeOwnDeclarations(type: stype).decls
                 for stype in stype.regular?.types ?? [] {
                     try walk(stype: stype)
                 }
             }
             try walk(stype: stype)
-
-            let dependencyScanner = DependencyScanner(
-                knownNames: CodeGenerator.defaultKnownNames
-                    .union(importMap.typeNames(for: outputFile).map(\.rawValue))
-            )
-
-            // 使用したっぽい型を記録
-            usedTypes.formUnion(
-                dependencyScanner
-                    .scan(code: TSCode(tsDecls.map { .decl($0) }))
-                    .map { TSIdentifier($0) }
-            )
-
-            // 型定義とjson変換関数だけを抜き出し
-            codes.append(
-                contentsOf: tsDecls
-                    .map { $0.description.trimmingCharacters(in: .whitespacesAndNewlines) }
-            )
         }
 
         if codes.isEmpty { return nil }
 
-        // importが必要そうな型を調べてimport文を生成する
-        let importNeededTypeNames = importMap.defs.map(\.typeName).filter { typeName in
-            usedTypes.contains(where: { $0 == typeName })
-        }
-        if !importNeededTypeNames.isEmpty {
-            let importDecls = importMap.importDecls(forTypes: importNeededTypeNames, for: outputFile)
-            if !importDecls.isEmpty {
-                codes.insert(importDecls.joined(separator: "\n"), at: 0)
+        var code = TSCode(codes.map { .decl($0) })
+
+        let deps = DependencyScanner().scan(code: code)
+
+        var nameMap: [String: [String]] = [:]
+        for dep in deps {
+            if let file = importMap.file(for: .init(dep)) {
+                nameMap[file, default: []].append(dep)
             }
         }
 
-        return codes.joined(separator: "\n\n") + "\n"
+        let files = nameMap.keys.sorted()
+
+        let importDecls: [TSImportDecl] = files.map { (file) in
+            let names = nameMap[file] ?? []
+            var file = file
+            if file.hasSuffix(".ts") {
+                file = "./" + (file as NSString).deletingPathExtension + ".js"
+            }
+            return TSImportDecl(names: names, from: file)
+        }
+
+        code.items.insert(contentsOf: importDecls.map { .decl(.import($0)) }, at: 0)
+
+        return code.description
     }
 
     static func outputFilename(for file: String) -> String {
