@@ -9,7 +9,7 @@ public struct EchoServiceStub: EchoServiceProtocol, Sendable {
     public func hello(request: EchoHelloRequest) async throws -> EchoHelloResponse {
         return try await client.send(path: "Echo/hello", request: request)
     }
-    public func testComplexType(request: TestComplexType.Request) async throws -> Response {
+    public func testComplexType(request: TestComplexType.Request) async throws -> TestComplexType.Response {
         return try await client.send(path: "Echo/testComplexType", request: request)
     }
 }

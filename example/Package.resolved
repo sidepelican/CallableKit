@@ -19,6 +19,15 @@
       }
     },
     {
+      "identity" : "codabletotypescript",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/omochi/CodableToTypeScript",
+      "state" : {
+        "revision" : "8175ccee523ea0068591ffa2b0481beff7fca97f",
+        "version" : "1.6.0"
+      }
+    },
+    {
       "identity" : "console-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/console-kit.git",
