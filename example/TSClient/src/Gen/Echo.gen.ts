@@ -1,7 +1,4 @@
-import {
-    IRawClient
-} from "./common.gen.js";
-
+import { IRawClient } from "./common.gen.js";
 import {
     Array_decode,
     OptionalField_decode,
@@ -11,7 +8,6 @@ import {
 
 export interface IEchoClient {
     hello(request: EchoHelloRequest): Promise<EchoHelloResponse>;
-
     testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response>;
 }
 

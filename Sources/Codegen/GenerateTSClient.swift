@@ -179,8 +179,7 @@ export interface IRawClient {
                         callee: .identifier("\(stype.serviceName)Client"),
                         arguments: [.init(.identifier("raw"))]
                     ))
-                ),
-                wantsTrailingNewline: true
+                )
             ))
         }
 

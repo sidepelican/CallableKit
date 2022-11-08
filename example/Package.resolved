@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/CodableToTypeScript",
       "state" : {
-        "revision" : "8175ccee523ea0068591ffa2b0481beff7fca97f",
-        "version" : "1.6.0"
+        "revision" : "08d35d1d4f81762507574630724e8bf6b8d293e9",
+        "version" : "1.8.0"
       }
     },
     {
