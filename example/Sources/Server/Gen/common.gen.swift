@@ -1,41 +1,59 @@
 import Vapor
 
-protocol RawRequestHandler {
-    func makeHandler<Req: Decodable & Sendable, Res: Encodable & Sendable, Service>(
-        _ makeService: @escaping (Request) -> Service,
-        _ callMethod: @Sendable @escaping (Service, Req) async throws -> (Res)
+protocol VaporToServiceBridgeProtocol {
+    func makeHandler<Service, Req, Res>(
+        _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
+        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
     ) -> (Request) async -> Response
+    where Req: Decodable & Sendable, Res: Encodable & Sendable
 }
 
-private struct Empty: Codable, Sendable {}
+private struct _Empty: Codable, Sendable {}
 
-extension RawRequestHandler {
-    func makeHandler<Res: Encodable & Sendable, Service>(
-        _ makeService: @escaping (Request) -> Service,
-        _ callMethod: @Sendable @escaping (Service) async throws -> (Res)
-    ) -> (Request) async -> Response {
-        makeHandler(makeService, { (s: Service, r: Empty) in
-            try await callMethod(s)
-        })
+extension VaporToServiceBridgeProtocol {
+    func makeHandler<Service, Res>(
+        _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
+        _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Res
+    ) -> (Request) async -> Response
+    where Res: Encodable & Sendable
+    {
+        makeHandler(serviceBuilder) { (serviceType: Service.Type) in
+            { (service: Service) in
+                { (_: _Empty) -> Res in
+                    try await methodSelector(serviceType)(service)()
+                }
+            }
+        }
     }
 
-    func makeHandler<Req: Decodable & Sendable, Service>(
-        _ makeService: @escaping (Request) -> Service,
-        _ callMethod: @Sendable @escaping (Service, Req) async throws -> Void
-    ) -> (Request) async -> Response {
-        makeHandler(makeService, { (s: Service, r: Req) -> Empty in
-            try await callMethod(s, r)
-            return Empty()
-        })
+    func makeHandler<Service, Req>(
+        _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
+        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
+    ) -> (Request) async -> Response
+    where Req: Decodable & Sendable
+    {
+        makeHandler(serviceBuilder) { (serviceType: Service.Type) in
+            { (service: Service) in
+                { (req: Req) -> _Empty in
+                    try await methodSelector(serviceType)(service)(req)
+                    return _Empty()
+                }
+            }
+        }
     }
 
     func makeHandler<Service>(
-        _ makeService: @escaping (Request) -> Service,
-        _ callMethod: @Sendable @escaping (Service) async throws -> Void
-    ) -> (Request) async -> Response {
-        makeHandler(makeService, { (s: Service, r: Empty) -> Empty in
-            try await callMethod(s)
-            return Empty()
-        })
+        _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
+        _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Void
+    ) -> (Request) async -> Response
+    {
+        makeHandler(serviceBuilder) { (serviceType: Service.Type) in
+            { (service: Service) in
+                { (_: _Empty) -> _Empty in
+                    try await methodSelector(serviceType)(service)()
+                    return _Empty()
+                }
+            }
+        }
     }
 }

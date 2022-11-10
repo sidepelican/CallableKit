@@ -1,5 +1,5 @@
 import APIDefinition
-@preconcurrency import Foundation
+import Foundation
 
 fileprivate struct Empty: Codable {}
 
@@ -77,13 +77,15 @@ final class RawStubClient: StubClientProtocol {
 
 private func makeDecoder() -> JSONDecoder {
     let decoder = JSONDecoder()
-    let f1 = ISO8601DateFormatter()
-    f1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    let f2 = ISO8601DateFormatter()
-    f2.formatOptions = .withInternetDateTime
     decoder.dateDecodingStrategy = .custom { decoder in
         let container = try decoder.singleValueContainer()
         let string = try container.decode(String.self)
+
+        let f1 = ISO8601DateFormatter()
+        f1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let f2 = ISO8601DateFormatter()
+        f2.formatOptions = .withInternetDateTime
+
         for formatter in [f1, f2] {
             if let date = formatter.date(from: string) {
                 return date
