@@ -22,12 +22,18 @@ let package = Package(
             dependencies: [
                 "Service",
                 .product(name: "Vapor", package: "vapor"),
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-strict-concurrency=complete"]),
             ]
         ),
         .executableTarget(
             name: "Client",
             dependencies: [
                 "APIDefinition",
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-strict-concurrency=complete"]),
             ]
         ),
         .plugin(

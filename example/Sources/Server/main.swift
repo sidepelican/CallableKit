@@ -4,7 +4,7 @@ import Service
 let app = Application()
 defer { app.shutdown() }
 
-let echoProvider = EchoServiceProvider(handler: .default) { req in
+let echoProvider = EchoServiceProvider(bridge: .default) { req in
     makeEchoService()
 }
 try app.register(collection: echoProvider)
