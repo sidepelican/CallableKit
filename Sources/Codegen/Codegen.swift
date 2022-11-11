@@ -41,7 +41,7 @@ enum CodegenError: Error {
         }
 
         if let client_out = client_out {
-            try GenerateIOSClient(
+            try GenerateSwiftClient(
                 definitionModule: module,
                 srcDirectory: definitionDirectory,
                 dstDirectory: client_out

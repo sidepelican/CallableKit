@@ -1,7 +1,7 @@
 import Foundation
 import SwiftTypeReader
 
-struct GenerateIOSClient {
+struct GenerateSwiftClient {
     var definitionModule: String
     var srcDirectory: URL
     var dstDirectory: URL
@@ -9,39 +9,34 @@ struct GenerateIOSClient {
     private func generateStubClient() -> String {
         """
 public protocol StubClientProtocol: Sendable {
-    func send<Req: Encodable, Res: Decodable>(
+    func send<Req: Encodable & Sendable, Res: Decodable & Sendable>(
         path: String,
         request: Req,
         responseType: Res.Type
     ) async throws -> Res
-
-    func send<Req: Encodable>(
-        path: String,
-        request: Req
-    ) async throws
 }
 
-fileprivate struct Empty: Codable {}
+struct Empty: Codable {}
 
 extension StubClientProtocol {
-    public func send<Req: Encodable, Res: Decodable>(
+    public func send<Req: Encodable & Sendable, Res: Decodable & Sendable>(
         path: String,
         request: Req
     ) async throws -> Res {
         try await send(path: path, request: request, responseType: Res.self)
     }
 
-    public func send<Res: Decodable>(
-        path: String
-    ) async throws -> Res {
-        try await send(path: path, request: Empty(), responseType: Res.self)
-    }
-
-    public func send<Req: Encodable>(
+    public func send<Req: Encodable & Sendable>(
         path: String,
         request: Req
     ) async throws {
         _ = try await send(path: path, request: request, responseType: Empty.self)
+    }
+
+    public func send<Res: Decodable & Sendable>(
+        path: String
+    ) async throws -> Res {
+        try await send(path: path, request: Empty(), responseType: Res.self)
     }
 
     public func send(
@@ -57,10 +52,11 @@ extension StubClientProtocol {
     private func processFile(module: Module) throws -> String? {
         var stubs: [String] = []
         for stype in module.types.compactMap(ServiceProtocolScanner.scan) {
+            let stubTypeName = "\(stype.serviceName)ServiceStub"
             stubs.append("""
-public struct \(stype.serviceName)ServiceStub: \(stype.name), Sendable {
-    private let client: StubClientProtocol
-    public init(client: StubClientProtocol) {
+public struct \(stubTypeName)<C: StubClientProtocol>: \(stype.name), Sendable {
+    private let client: C
+    public init(client: C) {
         self.client = client
     }
 
@@ -71,6 +67,12 @@ public struct \(stype.serviceName)ServiceStub: \(stype.name), Sendable {
         return try await client.send(path: "\(stype.serviceName)/\(f.name)"\(f.request.map { ", request: \($0.argName)" } ??  ""))
     }
 """ }.joined(separator: "\n"))
+}
+
+extension StubClientProtocol {
+    public var \(stype.serviceName.lowercased()): \(stubTypeName)<Self> {
+        \(stubTypeName)(client: self)
+    }
 }
 
 """)

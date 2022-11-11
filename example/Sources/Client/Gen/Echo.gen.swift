@@ -1,8 +1,8 @@
 import APIDefinition
 
-public struct EchoServiceStub: EchoServiceProtocol, Sendable {
-    private let client: StubClientProtocol
-    public init(client: StubClientProtocol) {
+public struct EchoServiceStub<C: StubClientProtocol>: EchoServiceProtocol, Sendable {
+    private let client: C
+    public init(client: C) {
         self.client = client
     }
 
@@ -11,5 +11,11 @@ public struct EchoServiceStub: EchoServiceProtocol, Sendable {
     }
     public func testComplexType(request: TestComplexType.Request) async throws -> TestComplexType.Response {
         return try await client.send(path: "Echo/testComplexType", request: request)
+    }
+}
+
+extension StubClientProtocol {
+    public var echo: EchoServiceStub<Self> {
+        EchoServiceStub(client: self)
     }
 }
