@@ -1,7 +1,7 @@
 import APIDefinition
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+@preconcurrency import FoundationNetworking
 #endif
 
 struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
@@ -100,3 +100,22 @@ private func makeEncoder() -> JSONEncoder {
     encoder.dateEncodingStrategy = .iso8601
     return encoder
 }
+
+#if canImport(FoundationNetworking)
+extension URLSession {
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        // NOTICE: ignores cancellation
+        try await withCheckedThrowingContinuation { continuation in
+            let task = dataTask(with: request) { data, response, error in
+                guard let data, let response else {
+                    return continuation.resume(
+                        throwing: error ?? URLError(.badServerResponse)
+                    )
+                }
+                return continuation.resume(returning: (data, response))
+            }
+            task.resume()
+        }
+    }
+}
+#endif
