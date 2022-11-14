@@ -1,0 +1,24 @@
+name: Run test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: example
+    steps:
+    - uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: "5.7"
+    - uses: actions/checkout@v3
+    - run: npm ci
+      working-directory: ./TSClient
+    - name: test.sh
+      run: test.sh
