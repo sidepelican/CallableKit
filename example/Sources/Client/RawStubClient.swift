@@ -1,5 +1,8 @@
 import APIDefinition
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
     var errorMessage: String
