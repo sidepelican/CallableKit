@@ -23,6 +23,10 @@ async function main() {
     })
     console.log(JSON.stringify(res));
   }
+
+  {
+    await echoClient.emptyRequestAndResponse();
+  }
 }
 
 main();

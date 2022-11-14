@@ -14,4 +14,7 @@ struct EchoService: EchoServiceProtocol {
     func testComplexType(request: TestComplexType.Request) async throws -> TestComplexType.Response {
         .init(a: request.a)
     }
+
+    func emptyRequestAndResponse() async throws {
+    }
 }

@@ -1,7 +1,8 @@
 import APIDefinition
 import Foundation
-
-fileprivate struct Empty: Codable {}
+#if canImport(FoundationNetworking)
+@preconcurrency import FoundationNetworking
+#endif
 
 struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
     var errorMessage: String
@@ -62,9 +63,6 @@ final class RawStubClient: StubClientProtocol {
         }
 
         if 200...299 ~= urlResponse.statusCode {
-            if responseType == Empty.self {
-                return Empty() as! Res
-            }
             return try makeDecoder().decode(Res.self, from: data)
         } else if 400...599 ~= urlResponse.statusCode {
             let errorFrame = try makeDecoder().decode(ErrorFrame.self, from: data)
@@ -102,3 +100,22 @@ private func makeEncoder() -> JSONEncoder {
     encoder.dateEncodingStrategy = .iso8601
     return encoder
 }
+
+#if canImport(FoundationNetworking)
+extension URLSession {
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        // NOTICE: ignores cancellation
+        try await withCheckedThrowingContinuation { continuation in
+            let task = dataTask(with: request) { data, response, error in
+                guard let data, let response else {
+                    return continuation.resume(
+                        throwing: error ?? URLError(.badServerResponse)
+                    )
+                }
+                return continuation.resume(returning: (data, response))
+            }
+            task.resume()
+        }
+    }
+}
+#endif
