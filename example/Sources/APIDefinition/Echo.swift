@@ -4,6 +4,8 @@ public protocol EchoServiceProtocol {
     func hello(request: EchoHelloRequest) async throws -> EchoHelloResponse
 
     func testComplexType(request: TestComplexType.Request) async throws -> TestComplexType.Response
+
+    func emptyRequestAndResponse() async throws
 }
 
 public struct EchoHelloRequest: Codable, Sendable {
@@ -25,6 +27,10 @@ public struct EchoHelloResponse: Codable, Sendable {
 public enum TestComplexType {
     public struct K<T>: Codable & Sendable where T: Codable & Sendable {
         public var x: T
+
+        public init(x: T) {
+            self.x = x
+        }
     }
 
     public enum E<T>: Codable & Sendable where T: Codable & Sendable {
@@ -35,6 +41,10 @@ public enum TestComplexType {
 
     public struct L: Codable & Sendable {
         public var x: String
+
+        public init(x: String) {
+            self.x = x
+        }
     }
 
     public struct Request: Codable & Sendable {

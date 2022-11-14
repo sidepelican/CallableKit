@@ -13,6 +13,7 @@ struct EchoServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: EchoSe
         routes.group("Echo") { group in
             group.post("hello", use: bridge.makeHandler(serviceBuilder, { $0.hello }))
             group.post("testComplexType", use: bridge.makeHandler(serviceBuilder, { $0.testComplexType }))
+            group.post("emptyRequestAndResponse", use: bridge.makeHandler(serviceBuilder, { $0.emptyRequestAndResponse }))
         }
     }
 }
