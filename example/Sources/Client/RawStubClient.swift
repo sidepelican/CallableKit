@@ -1,8 +1,6 @@
 import APIDefinition
 import Foundation
 
-fileprivate struct Empty: Codable {}
-
 struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
     var errorMessage: String
 
@@ -62,9 +60,6 @@ final class RawStubClient: StubClientProtocol {
         }
 
         if 200...299 ~= urlResponse.statusCode {
-            if responseType == Empty.self {
-                return Empty() as! Res
-            }
             return try makeDecoder().decode(Res.self, from: data)
         } else if 400...599 ~= urlResponse.statusCode {
             let errorFrame = try makeDecoder().decode(ErrorFrame.self, from: data)
