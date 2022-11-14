@@ -19,6 +19,6 @@ jobs:
         swift-version: "5.7"
     - uses: actions/checkout@v3
     - run: npm ci
-      working-directory: ./TSClient
+      working-directory: example/TSClient
     - name: test.sh
       run: test.sh
