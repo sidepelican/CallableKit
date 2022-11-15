@@ -45,7 +45,6 @@ struct Generator {
 
     func run(_ perform: (Input, _ write: OutputSink) throws -> ()) throws {
         let context = SwiftTypeReader.Context()
-//        var inputFiles: [InputFile] = []
 
         _ = try SwiftTypeReader.Reader(
             context: context,
@@ -69,29 +68,6 @@ struct Generator {
                     InputFile(name: file, module: module, types: types, imports: importMap[file] ?? [])
                 }
             }
-
-//        let mainModule = context.getOrCreateModule(name: definitionModule)
-//        for file in findFiles(in: srcDirectory) {
-//            _ = try SwiftTypeReader.Reader(context: context, module: mainModule)
-//                .read(file: srcDirectory.appendingPathComponent(file))
-//            inputFiles.append(InputFile(
-//                name: URL(fileURLWithPath: file).lastPathComponent,
-//                module: mainModule
-//            ))
-//        }
-//        for dependency in dependencies {
-//            let module = context.getOrCreateModule(
-//                name: detectModuleName(dir: dependency) ?? dependency.lastPathComponent
-//            )
-//            for file in findFiles(in: dependency) {
-//                _ = try SwiftTypeReader.Reader(context: context,module: module)
-//                    .read(file: URL(fileURLWithPath: file))
-//                inputFiles.append(InputFile(
-//                    name: URL(fileURLWithPath: file).lastPathComponent,
-//                    module: module
-//                ))
-//            }
-//        }
 
         let input = Input(context: context, files: inputFiles)
         let sink = OutputSink(dstDirectory: dstDirectory)
