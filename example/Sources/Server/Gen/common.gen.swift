@@ -6,6 +6,23 @@ protocol VaporToServiceBridgeProtocol {
         _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
     ) -> (Request) async -> Response
     where Req: Decodable & Sendable, Res: Encodable & Sendable
+
+    func makeHandler<Service, Res>(
+        _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
+        _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Res
+    ) -> (Request) async -> Response
+    where Res: Encodable & Sendable
+
+    func makeHandler<Service, Req>(
+        _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
+        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
+    ) -> (Request) async -> Response
+    where Req: Decodable & Sendable
+
+    func makeHandler<Service>(
+        _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
+        _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Void
+    ) -> (Request) async -> Response
 }
 
 private struct _Empty: Codable, Sendable {}

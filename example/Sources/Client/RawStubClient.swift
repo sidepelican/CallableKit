@@ -37,8 +37,7 @@ final class RawStubClient: StubClientProtocol {
 
     func send<Req: Encodable, Res: Decodable>(
         path: String,
-        request: Req,
-        responseType: Res.Type = Res.self
+        request: Req
     ) async throws -> Res {
         var q = URLRequest(url: baseURL.appendingPathComponent(path))
         q.httpMethod = "POST"
@@ -50,13 +49,12 @@ final class RawStubClient: StubClientProtocol {
         q.httpBody = body
 
         let (data, urlResponse) = try await session.data(for: q)
-        return try Self.handleResponse(data: data, response: urlResponse, responseType: responseType)
+        return try Self.handleResponse(data: data, response: urlResponse)
     }
 
     private static func handleResponse<Res: Decodable>(
         data: Data,
-        response: URLResponse,
-        responseType: Res.Type = Res.self
+        response: URLResponse
     ) throws -> Res {
         guard let urlResponse = response as? HTTPURLResponse else {
             throw RawStubClientError.invalidState
