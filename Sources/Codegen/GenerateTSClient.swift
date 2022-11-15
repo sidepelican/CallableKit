@@ -11,8 +11,12 @@ fileprivate class ImportMap {
 
     var defs: [Def] = []
     func insert(type: SType, file: String, generator: CodeGenerator) throws {
-        let tsType = try generator.transpileTypeReference(type: type)
-        defs.append((TSIdentifier(tsType.description), file))
+        let tsType = TSIdentifier(try generator.transpileTypeReference(type: type).description)
+        if self.file(for: tsType) != nil {
+            throw MessageError("Duplicated type: \(tsType). Using the same type name in multiple modules is not supported.")
+        }
+
+        defs.append((tsType, file))
 
         if try generator.hasTranspiledJSONType(type: type) {
             let tsJsonType = try generator.transpileTypeReferenceToJSON(type: type)

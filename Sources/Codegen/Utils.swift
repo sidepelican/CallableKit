@@ -31,6 +31,13 @@ struct UnitStringType<Tag>:
     }
 }
 
+struct MessageError: Error, CustomStringConvertible {
+    var description: String
+    init(_ description: String) {
+        self.description = description
+    }
+}
+
 func detectModuleName(dir: URL) -> String? {
     dir
         .resolvingSymlinksInPath()

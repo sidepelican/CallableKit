@@ -1,10 +1,6 @@
 import ArgumentParser
 import Foundation
 
-enum CodegenError: Error {
-    case definitionsModuleNameNotFound
-}
-
 @main struct Codegen: ParsableCommand {
     @Option(help: "generate client stub", completion: .directory)
     var client_out: URL?
@@ -32,7 +28,7 @@ enum CodegenError: Error {
 
     mutating func run() throws {
         guard let module = module ?? detectModuleName(dir: definitionDirectory) else {
-            throw CodegenError.definitionsModuleNameNotFound
+            throw MessageError("definitionsModuleNameNotFound")
         }
 
         if let client_out = client_out {
