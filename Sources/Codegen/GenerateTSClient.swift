@@ -72,7 +72,7 @@ export interface IRawClient {
     private func processFile(
         generator: CodeGenerator,
         file: Generator.InputFile
-    ) throws -> TSCode? {
+    ) throws -> String? {
         var codes: [TSDecl] = []
 
         for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
@@ -238,7 +238,7 @@ export interface IRawClient {
 
         code.items.insert(contentsOf: importDecls.map { .decl(.import($0)) }, at: 0)
 
-        return code
+        return code.description
     }
 
     private func outputFilename(for file: Generator.InputFile) -> String {
@@ -269,7 +269,7 @@ export interface IRawClient {
             )
             try write(file: decoderHelper)
 
-            // 1st pass - create importMap
+            // 1st pass
             for inputFile in input.files {
                 let outputFile = outputFilename(for: inputFile)
 
@@ -285,39 +285,13 @@ export interface IRawClient {
                 }
             }
 
-            // 2nd pass - process definition module
-            var definitionTSCode: TSCode = .init([])
-            for inputFile in input.files where inputFile.module.name == definitionModule {
+            // 2nd pass
+            for inputFile in input.files {
                 guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
+                let outputFile = outputFilename(for: inputFile)
                 try write(file: .init(
-                    name: outputFilename(for: inputFile),
-                    content: generated.description
-                ))
-
-                definitionTSCode.items += generated.items
-            }
-
-            // 3rd pass - process dependency module
-            let deps = Set(DependencyScanner().scan(code: definitionTSCode).map { TSIdentifier($0) })
-            for inputFile in input.files where inputFile.module.name != definitionModule {
-                guard var generated = try processFile(generator: generator, file: inputFile) else { continue }
-                generated.items = generated.items.filter { block in
-                    switch block.decl {
-                    case .type(let typeDecl):
-                        return deps.contains(TSIdentifier(typeDecl.name))
-                    case .function(let funcDecl):
-                        return deps.contains(TSIdentifier(funcDecl.name))
-                    default:
-                        return false
-                    }
-                }
-                if generated.items.isEmpty {
-                    continue
-                }
-
-                try write(file: .init(
-                    name: outputFilename(for: inputFile),
-                    content: generated.description
+                    name: outputFile,
+                    content: generated
                 ))
             }
         }
