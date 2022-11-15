@@ -104,7 +104,7 @@ extension StubClientProtocol {
 
             for inputFile in input.files {
                 guard let generated = try processFile(file: inputFile) else { continue }
-                let outputFile = URL(fileURLWithPath: inputFile.name.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.swift")).lastPathComponent
+                let outputFile = URL(fileURLWithPath: inputFile.path.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.swift")).lastPathComponent
                 try write(file: .init(
                     name: outputFile,
                     content: generated

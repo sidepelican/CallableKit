@@ -1,4 +1,4 @@
-import { CodableResult, CodableResult_JSON, CodableResult_decode } from "./CodableResult.gen.js";
+import { CodableResult, CodableResult_JSON, CodableResult_decode } from "./OtherDependency/CodableResult.gen.js";
 import { SubmitError, SubmitError_JSON, SubmitError_decode } from "./SubmitError.gen.js";
 import { IRawClient } from "./common.gen.js";
 import { identity } from "./decode.gen.js";

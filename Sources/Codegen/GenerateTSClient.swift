@@ -3,7 +3,7 @@ import Foundation
 import SwiftTypeReader
 import TSCodeModule
 
-class ImportMap {
+fileprivate class ImportMap {
     typealias Def = (typeName: TSIdentifier, fileName: String)
     init(defs: [Def]) {
         self.defs = defs
@@ -237,8 +237,14 @@ export interface IRawClient {
         return code.description
     }
 
-    static func outputFilename(for file: URL) -> String {
-        URL(fileURLWithPath: file.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
+    private func outputFilename(for file: Generator.InputFile) -> String {
+        let name = URL(fileURLWithPath: file.path.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
+        if let moduleName = file.types.first?.asSpecifier().module.name,
+           moduleName != definitionModule {
+            return "\(moduleName)/\(name)"
+        } else {
+            return name
+        }
     }
 
     func run() throws {
@@ -262,7 +268,7 @@ export interface IRawClient {
 
             // 1st pass
             for inputFile in input.files {
-                let outputFile = Self.outputFilename(for: inputFile.name)
+                let outputFile = outputFilename(for: inputFile)
 
                 func walk(stype: SType) throws {
                     try importMap.insert(type: stype, file: outputFile, generator: generator)
@@ -279,7 +285,7 @@ export interface IRawClient {
             // 2nd pass
             for inputFile in input.files {
                 guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
-                let outputFile = Self.outputFilename(for: inputFile.name)
+                let outputFile = outputFilename(for: inputFile)
                 try write(file: .init(
                     name: outputFile,
                     content: generated
