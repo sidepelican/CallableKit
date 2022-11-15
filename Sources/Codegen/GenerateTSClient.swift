@@ -3,7 +3,7 @@ import Foundation
 import SwiftTypeReader
 import TSCodeModule
 
-class ImportMap {
+fileprivate class ImportMap {
     typealias Def = (typeName: TSIdentifier, fileName: String)
     init(defs: [Def]) {
         self.defs = defs
@@ -30,8 +30,10 @@ class ImportMap {
 }
 
 struct GenerateTSClient {
+    var definitionModule: String
     var srcDirectory: URL
     var dstDirectory: URL
+    var dependencies: [URL]
     var nextjs: Bool
 
     private let importMap = ImportMap(defs: [
@@ -69,7 +71,7 @@ export interface IRawClient {
     ) throws -> String? {
         var codes: [TSDecl] = []
 
-        for stype in file.module.types.compactMap(ServiceProtocolScanner.scan) {
+        for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
             let clientInterface = TSInterfaceDecl(
                 name: "I\(stype.serviceName)Client",
                 decls: try stype.functions.map { (f) in
@@ -184,7 +186,7 @@ export interface IRawClient {
         }
 
         // Request・Response型定義の出力
-        for stype in file.module.types {
+        for stype in file.types {
             guard stype.struct != nil
                     || (stype.enum != nil && !stype.enum!.caseElements.isEmpty)
                     || stype.regular?.types.isEmpty == false
@@ -235,12 +237,18 @@ export interface IRawClient {
         return code.description
     }
 
-    static func outputFilename(for file: String) -> String {
-        URL(fileURLWithPath: file.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
+    private func outputFilename(for file: Generator.InputFile) -> String {
+        let name = URL(fileURLWithPath: file.path.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
+        if let moduleName = file.types.first?.asSpecifier().module.name,
+           moduleName != definitionModule {
+            return "\(moduleName)/\(name)"
+        } else {
+            return name
+        }
     }
 
     func run() throws {
-        var g = Generator(srcDirectory: srcDirectory, dstDirectory: dstDirectory)
+        var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
         g.isOutputFileName = { $0.hasSuffix(".gen.ts") }
 
         let generator = CodeGenerator(typeMap: typeMap)
@@ -260,7 +268,7 @@ export interface IRawClient {
 
             // 1st pass
             for inputFile in input.files {
-                let outputFile = Self.outputFilename(for: inputFile.name)
+                let outputFile = outputFilename(for: inputFile)
 
                 func walk(stype: SType) throws {
                     try importMap.insert(type: stype, file: outputFile, generator: generator)
@@ -269,7 +277,7 @@ export interface IRawClient {
                     }
                 }
 
-                for stype in inputFile.module.types {
+                for stype in inputFile.types {
                     try walk(stype: stype)
                 }
             }
@@ -277,7 +285,7 @@ export interface IRawClient {
             // 2nd pass
             for inputFile in input.files {
                 guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
-                let outputFile = Self.outputFilename(for: inputFile.name)
+                let outputFile = outputFilename(for: inputFile)
                 try write(file: .init(
                     name: outputFile,
                     content: generated

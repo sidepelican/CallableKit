@@ -10,7 +10,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.1.0"),
-        .package(url: "https://github.com/omochi/CodableToTypeScript", from: "1.8.0"),
+        .package(url: "https://github.com/omochi/CodableToTypeScript", .upToNextMinor(from: "1.8.1")),
     ],
     targets: [
         .executableTarget(

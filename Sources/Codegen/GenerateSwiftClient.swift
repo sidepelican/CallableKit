@@ -5,7 +5,8 @@ struct GenerateSwiftClient {
     var definitionModule: String
     var srcDirectory: URL
     var dstDirectory: URL
-
+    var dependencies: [URL]
+    
     private func generateStubClient() -> String {
         """
 public protocol StubClientProtocol: Sendable {
@@ -49,9 +50,9 @@ extension StubClientProtocol {
 """
     }
 
-    private func processFile(module: Module) throws -> String? {
+    private func processFile(file: Generator.InputFile) throws -> String? {
         var stubs: [String] = []
-        for stype in module.types.compactMap(ServiceProtocolScanner.scan) {
+        for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
             let stubTypeName = "\(stype.serviceName)ServiceStub"
             stubs.append("""
 public struct \(stubTypeName)<C: StubClientProtocol>: \(stype.name), Sendable {
@@ -79,15 +80,20 @@ extension StubClientProtocol {
         }
         if stubs.isEmpty { return nil }
 
+        let imports: String = Set([definitionModule] + file.imports.map(\.name))
+            .sorted()
+            .map({ "import \($0)" })
+            .joined(separator: "\n")
+
         return """
-import \(definitionModule)
+\(imports)
 
 \(stubs.joined())
 """
     }
 
     func run() throws {
-        var g = Generator(srcDirectory: srcDirectory, dstDirectory: dstDirectory)
+        var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
         g.isOutputFileName = { $0.hasSuffix(".gen.swift") }
 
         try g.run { input, write in
@@ -97,8 +103,8 @@ import \(definitionModule)
             ))
 
             for inputFile in input.files {
-                guard let generated = try processFile(module: inputFile.module) else { continue }
-                let outputFile = URL(fileURLWithPath: inputFile.name.replacingOccurrences(of: ".swift", with: ".gen.swift")).lastPathComponent
+                guard let generated = try processFile(file: inputFile) else { continue }
+                let outputFile = URL(fileURLWithPath: inputFile.path.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.swift")).lastPathComponent
                 try write(file: .init(
                     name: outputFile,
                     content: generated

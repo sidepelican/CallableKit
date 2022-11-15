@@ -30,3 +30,22 @@ struct UnitStringType<Tag>:
         rawValue.description
     }
 }
+
+func detectModuleName(dir: URL) -> String? {
+    dir
+        .resolvingSymlinksInPath()
+        .pathComponents
+        .eachPairs()
+        .first { (f, s) in
+            f == "Sources"
+        }
+        .map(\.1)
+}
+
+extension Sequence {
+    func eachPairs() -> AnySequence<(Element, Element)> {
+        AnySequence(
+            zip(self, self.dropFirst())
+        )
+    }
+}

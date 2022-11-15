@@ -5,6 +5,7 @@ struct GenerateVaporProvider {
     var definitionModule: String
     var srcDirectory: URL
     var dstDirectory: URL
+    var dependencies: [URL]
 
     private func generateCommon() -> String {
         """
@@ -71,9 +72,9 @@ extension VaporToServiceBridgeProtocol {
 """
     }
 
-    private func processFile(module: Module) throws -> String? {
+    private func processFile(file: Generator.InputFile) throws -> String? {
         var providers: [String] = []
-        for stype in module.types.compactMap(ServiceProtocolScanner.scan) {
+        for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
             providers.append("""
 struct \(stype.serviceName)ServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: \(stype.name)>: RouteCollection {
     var bridge: Bridge
@@ -105,7 +106,7 @@ import Vapor
     }
 
     func run() throws {
-        var g = Generator(srcDirectory: srcDirectory, dstDirectory: dstDirectory)
+        var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
         g.isOutputFileName = { $0.hasSuffix(".gen.swift") }
 
         try g.run { input, write in
@@ -116,8 +117,8 @@ import Vapor
             try write(file: common)
 
             for inputFile in input.files {
-                guard let generated = try processFile(module: inputFile.module) else { continue }
-                let outputFile = URL(fileURLWithPath: inputFile.name.replacingOccurrences(of: ".swift", with: ".gen.swift")).lastPathComponent
+                guard let generated = try processFile(file: inputFile) else { continue }
+                let outputFile = URL(fileURLWithPath: inputFile.path.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.swift")).lastPathComponent
                 try write(file: .init(
                     name: outputFile,
                     content: generated
