@@ -11,8 +11,12 @@ fileprivate class ImportMap {
 
     var defs: [Def] = []
     func insert(type: SType, file: String, generator: CodeGenerator) throws {
-        let tsType = try generator.transpileTypeReference(type: type)
-        defs.append((TSIdentifier(tsType.description), file))
+        let tsType = TSIdentifier(try generator.transpileTypeReference(type: type).description)
+        if self.file(for: tsType) != nil {
+            throw MessageError("Duplicated type: \(tsType). Using the same type name in multiple modules is not supported.")
+        }
+
+        defs.append((tsType, file))
 
         if try generator.hasTranspiledJSONType(type: type) {
             let tsJsonType = try generator.transpileTypeReferenceToJSON(type: type)
@@ -208,11 +212,11 @@ export interface IRawClient {
 
         var code = TSCode(codes.map { .decl($0) })
 
-        let deps = DependencyScanner().scan(code: code)
+        let deps = DependencyScanner().scan(code: code).map { TSIdentifier($0) }
 
-        var nameMap: [String: [String]] = [:]
+        var nameMap: [String: [TSIdentifier]] = [:]
         for dep in deps {
-            if let file = importMap.file(for: .init(dep)) {
+            if let file = importMap.file(for: dep) {
                 nameMap[file, default: []].append(dep)
             }
         }
@@ -229,7 +233,7 @@ export interface IRawClient {
                     file = "./" + (file as NSString).deletingPathExtension + ".js"
                 }
             }
-            return TSImportDecl(names: names, from: file)
+            return TSImportDecl(names: names.map(\.rawValue), from: file)
         }
 
         code.items.insert(contentsOf: importDecls.map { .decl(.import($0)) }, at: 0)
@@ -239,9 +243,8 @@ export interface IRawClient {
 
     private func outputFilename(for file: Generator.InputFile) -> String {
         let name = URL(fileURLWithPath: file.path.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
-        if let moduleName = file.types.first?.asSpecifier().module.name,
-           moduleName != definitionModule {
-            return "\(moduleName)/\(name)"
+        if file.module.name != definitionModule {
+            return "\(file.module.name)/\(name)"
         } else {
             return name
         }
