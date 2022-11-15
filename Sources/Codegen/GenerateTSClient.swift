@@ -72,7 +72,7 @@ export interface IRawClient {
     private func processFile(
         generator: CodeGenerator,
         file: Generator.InputFile
-    ) throws -> String? {
+    ) throws -> TSCode? {
         var codes: [TSDecl] = []
 
         for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
@@ -212,11 +212,11 @@ export interface IRawClient {
 
         var code = TSCode(codes.map { .decl($0) })
 
-        let deps = DependencyScanner().scan(code: code)
+        let deps = DependencyScanner().scan(code: code).map { TSIdentifier($0) }
 
-        var nameMap: [String: [String]] = [:]
+        var nameMap: [String: [TSIdentifier]] = [:]
         for dep in deps {
-            if let file = importMap.file(for: .init(dep)) {
+            if let file = importMap.file(for: dep) {
                 nameMap[file, default: []].append(dep)
             }
         }
@@ -233,19 +233,18 @@ export interface IRawClient {
                     file = "./" + (file as NSString).deletingPathExtension + ".js"
                 }
             }
-            return TSImportDecl(names: names, from: file)
+            return TSImportDecl(names: names.map(\.rawValue), from: file)
         }
 
         code.items.insert(contentsOf: importDecls.map { .decl(.import($0)) }, at: 0)
 
-        return code.description
+        return code
     }
 
     private func outputFilename(for file: Generator.InputFile) -> String {
         let name = URL(fileURLWithPath: file.path.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
-        if let moduleName = file.types.first?.asSpecifier().module.name,
-           moduleName != definitionModule {
-            return "\(moduleName)/\(name)"
+        if file.module.name != definitionModule {
+            return "\(file.module.name)/\(name)"
         } else {
             return name
         }
@@ -270,7 +269,7 @@ export interface IRawClient {
             )
             try write(file: decoderHelper)
 
-            // 1st pass
+            // 1st pass - create importMap
             for inputFile in input.files {
                 let outputFile = outputFilename(for: inputFile)
 
@@ -286,13 +285,39 @@ export interface IRawClient {
                 }
             }
 
-            // 2nd pass
-            for inputFile in input.files {
+            // 2nd pass - process definition module
+            var definitionTSCode: TSCode = .init([])
+            for inputFile in input.files where inputFile.module.name == definitionModule {
                 guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
-                let outputFile = outputFilename(for: inputFile)
                 try write(file: .init(
-                    name: outputFile,
-                    content: generated
+                    name: outputFilename(for: inputFile),
+                    content: generated.description
+                ))
+
+                definitionTSCode.items += generated.items
+            }
+
+            // 3rd pass - process dependency module
+            let deps = Set(DependencyScanner().scan(code: definitionTSCode).map { TSIdentifier($0) })
+            for inputFile in input.files where inputFile.module.name != definitionModule {
+                guard var generated = try processFile(generator: generator, file: inputFile) else { continue }
+                generated.items = generated.items.filter { block in
+                    switch block.decl {
+                    case .type(let typeDecl):
+                        return deps.contains(TSIdentifier(typeDecl.name))
+                    case .function(let funcDecl):
+                        return deps.contains(TSIdentifier(funcDecl.name))
+                    default:
+                        return false
+                    }
+                }
+                if generated.items.isEmpty {
+                    continue
+                }
+
+                try write(file: .init(
+                    name: outputFilename(for: inputFile),
+                    content: generated.description
                 ))
             }
         }
