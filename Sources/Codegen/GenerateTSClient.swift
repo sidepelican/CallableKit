@@ -186,7 +186,7 @@ export interface IRawClient {
         }
 
         // Request・Response型定義の出力
-        for stype in file.module.types {
+        for stype in file.types {
             guard stype.struct != nil
                     || (stype.enum != nil && !stype.enum!.caseElements.isEmpty)
                     || stype.regular?.types.isEmpty == false
@@ -271,7 +271,7 @@ export interface IRawClient {
                     }
                 }
 
-                for stype in inputFile.module.types {
+                for stype in inputFile.types {
                     try walk(stype: stype)
                 }
             }

@@ -7,9 +7,9 @@ struct GenerateMiddleware {
     var dstDirectory: URL
     var dependencies: [URL]
 
-    private func processFile(module: Module) throws -> String? {
+    private func processFile(file: Generator.InputFile) throws -> String? {
         var providers: [String] = []
-        for stype in module.types.compactMap(ServiceProtocolScanner.scan) {
+        for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
             providers.append("""
 protocol \(stype.serviceName)ServiceMiddlewareProtocol: \(stype.serviceName)ServiceProtocol {
     associatedtype Output
@@ -46,7 +46,7 @@ import \(definitionModule)
         
         try g.run { input, write in
             for inputFile in input.files {
-                guard let generated = try processFile(module: inputFile.module) else { continue }
+                guard let generated = try processFile(file: inputFile) else { continue }
                 let outputFile = URL(fileURLWithPath: inputFile.name.lastPathComponent.replacingOccurrences(of: ".swift", with: "Middleware.gen.swift")).lastPathComponent
                 try write(file: .init(
                     name: outputFile,

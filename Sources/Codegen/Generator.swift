@@ -11,7 +11,6 @@ struct Generator {
 
     struct InputFile {
         var name: URL
-        var module: Module
         var types: [SType]
         var imports: [ImportDecl]
     }
@@ -65,7 +64,7 @@ struct Generator {
                 let typeMap = [URL: [SType]](grouping: module.types, by: { $0.asSpecifier().file! })
                 let importMap = [URL: [ImportDecl]](grouping: module.imports, by: { $0.file! })
                 return typeMap.map { (file, types) in
-                    InputFile(name: file, module: module, types: types, imports: importMap[file] ?? [])
+                    InputFile(name: file, types: types, imports: importMap[file] ?? [])
                 }
             }
 
