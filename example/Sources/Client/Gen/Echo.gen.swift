@@ -1,4 +1,5 @@
 import APIDefinition
+import Foundation
 
 public struct EchoServiceStub<C: StubClientProtocol>: EchoServiceProtocol, Sendable {
     private let client: C

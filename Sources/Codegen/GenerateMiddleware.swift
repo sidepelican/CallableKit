@@ -5,6 +5,7 @@ struct GenerateMiddleware {
     var definitionModule: String
     var srcDirectory: URL
     var dstDirectory: URL
+    var dependencies: [URL]
 
     private func processFile(module: Module) throws -> String? {
         var providers: [String] = []
@@ -40,13 +41,13 @@ import \(definitionModule)
     }
 
     func run() throws {
-        var g = Generator(srcDirectory: srcDirectory, dstDirectory: dstDirectory)
+        var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
         g.isOutputFileName = { $0.hasSuffix(".gen.swift") }
         
         try g.run { input, write in
             for inputFile in input.files {
                 guard let generated = try processFile(module: inputFile.module) else { continue }
-                let outputFile = URL(fileURLWithPath: inputFile.name.replacingOccurrences(of: ".swift", with: "Middleware.gen.swift")).lastPathComponent
+                let outputFile = URL(fileURLWithPath: inputFile.name.lastPathComponent.replacingOccurrences(of: ".swift", with: "Middleware.gen.swift")).lastPathComponent
                 try write(file: .init(
                     name: outputFile,
                     content: generated

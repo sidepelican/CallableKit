@@ -15,6 +15,7 @@ struct CodegenPlugin: CommandPlugin {
             "--client_out", "Sources/Client/Gen",
             "--vapor_out", "Sources/Server/Gen",
             "--ts_out", "TSClient/src/Gen",
+            "--dependency", "Sources/OtherDependency",
         ]
 
         let process = try Process.run(codegenExec, arguments: arguments)

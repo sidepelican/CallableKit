@@ -48,12 +48,12 @@ enum ServiceProtocolScanner {
             return ServiceProtocolType.Function(
                 name: fdecl.name,
                 request: fdecl.parameters.first.map {
-                    .init(argName: $0.name, typeName: $0.unresolvedType.description, raw: try! $0.type())
+                    .init(argName: $0.name, typeName: $0.unresolvedType.description, raw: $0.type())
                 },
                 response: fdecl.unresolvedOutputType.map {
                     .init(
                         typeName: $0.description,
-                        raw: try! $0.resolved()
+                        raw: $0.resolved()
                     )
                 },
                 raw: fdecl

@@ -21,6 +21,9 @@ enum CodegenError: Error {
     @Option(name: .shortAndLong, help: "module name of definition")
     var module: String?
 
+    @Option(name: .shortAndLong, parsing: .singleValue, help: "directory path of dependency module source", completion: .directory)
+    var dependency: [URL] = []
+
     @Argument(help: "directory path of definition codes", completion: .directory)
     var definitionDirectory: URL
 
@@ -28,15 +31,7 @@ enum CodegenError: Error {
     var nextjs: Bool = false
 
     mutating func run() throws {
-        let moduleName = definitionDirectory
-            .resolvingSymlinksInPath()
-            .pathComponents
-            .eachPairs()
-            .first { (f, s) in
-                f == "Sources"
-            }
-            .map(\.1)
-        guard let module = module ?? moduleName else {
+        guard let module = module ?? detectModuleName(dir: definitionDirectory) else {
             throw CodegenError.definitionsModuleNameNotFound
         }
 
@@ -44,7 +39,8 @@ enum CodegenError: Error {
             try GenerateSwiftClient(
                 definitionModule: module,
                 srcDirectory: definitionDirectory,
-                dstDirectory: client_out
+                dstDirectory: client_out,
+                dependencies: dependency
             ).run()
         }
 
@@ -52,7 +48,8 @@ enum CodegenError: Error {
             try GenerateMiddleware(
                 definitionModule: module,
                 srcDirectory: definitionDirectory,
-                dstDirectory: middleware_out
+                dstDirectory: middleware_out,
+                dependencies: dependency
             ).run()
         }
 
@@ -60,25 +57,20 @@ enum CodegenError: Error {
             try GenerateVaporProvider(
                 definitionModule: module,
                 srcDirectory: definitionDirectory,
-                dstDirectory: vapor_out
+                dstDirectory: vapor_out,
+                dependencies: dependency
             ).run()
         }
 
         if let ts_out = ts_out {
             try GenerateTSClient(
+                definitionModule: module,
                 srcDirectory: definitionDirectory,
                 dstDirectory: ts_out,
+                dependencies: dependency,
                 nextjs: nextjs
             ).run()
         }
-    }
-}
-
-extension Sequence {
-    func eachPairs() -> AnySequence<(Element, Element)> {
-        AnySequence(
-            zip(self, self.dropFirst())
-        )
     }
 }
 

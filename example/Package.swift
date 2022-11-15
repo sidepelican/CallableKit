@@ -10,7 +10,11 @@ let package = Package(
         .package(url: "https://github.com/vapor/vapor", from: "4.57.0"),
     ],
     targets: [
-        .target(name: "APIDefinition"),
+        .target(
+            name: "APIDefinition",
+            dependencies: ["OtherDependency"]
+        ),
+        .target(name: "OtherDependency"),
         .target(
             name: "Service",
             dependencies: [

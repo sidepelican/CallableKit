@@ -2,14 +2,18 @@ import Foundation
 import SwiftTypeReader
 
 struct Generator {
+    var definitionModule: String
     var srcDirectory: URL
     var dstDirectory: URL
+    var dependencies: [URL]
     var fileManager = FileManager()
     var isOutputFileName: ((_ filename: String) -> Bool)?
 
     struct InputFile {
-        var name: String
+        var name: URL
         var module: Module
+        var types: [SType]
+        var imports: [ImportDecl]
     }
 
     struct OutputFile {
@@ -18,7 +22,7 @@ struct Generator {
     }
 
     struct Input {
-        var allModule: Modules
+        var context: SwiftTypeReader.Context
         var files: [InputFile]
     }
 
@@ -40,24 +44,58 @@ struct Generator {
     }
 
     func run(_ perform: (Input, _ write: OutputSink) throws -> ()) throws {
-        let srcFiles = (fileManager.subpaths(atPath: srcDirectory.path) ?? [])
-            .filter {
-                !fileManager.isDirectory(at: srcDirectory.appendingPathComponent($0))
-            }
-        if srcFiles.isEmpty { return }
-        try fileManager.createDirectory(at: dstDirectory, withIntermediateDirectories: true)
+        let context = SwiftTypeReader.Context()
+//        var inputFiles: [InputFile] = []
 
-        let allModule = Modules()
-        let input = Input(
-            allModule: allModule,
-            files: try srcFiles.map { file in
-                let reader = SwiftTypeReader.Reader(modules: allModule, moduleName: file)
-                let result = try reader.read(file: srcDirectory.appendingPathComponent(file), module: nil)
-                return .init(name: URL(fileURLWithPath: file).lastPathComponent, module: result.module)
-            }
+        _ = try SwiftTypeReader.Reader(
+            context: context,
+            module: context.getOrCreateModule(name: definitionModule)
         )
+        .read(file: srcDirectory)
+        for dependency in dependencies {
+            let module = context.getOrCreateModule(
+                name: detectModuleName(dir: dependency) ?? dependency.lastPathComponent
+            )
+            _ = try SwiftTypeReader.Reader(context: context,module: module)
+                .read(file: dependency)
+        }
 
+        let inputFiles = context.modules
+            .filter { $0.name != "Swift" }
+            .flatMap { module -> [InputFile] in
+                let typeMap = [URL: [SType]](grouping: module.types, by: { $0.asSpecifier().file! })
+                let importMap = [URL: [ImportDecl]](grouping: module.imports, by: { $0.file! })
+                return typeMap.map { (file, types) in
+                    InputFile(name: file, module: module, types: types, imports: importMap[file] ?? [])
+                }
+            }
+
+//        let mainModule = context.getOrCreateModule(name: definitionModule)
+//        for file in findFiles(in: srcDirectory) {
+//            _ = try SwiftTypeReader.Reader(context: context, module: mainModule)
+//                .read(file: srcDirectory.appendingPathComponent(file))
+//            inputFiles.append(InputFile(
+//                name: URL(fileURLWithPath: file).lastPathComponent,
+//                module: mainModule
+//            ))
+//        }
+//        for dependency in dependencies {
+//            let module = context.getOrCreateModule(
+//                name: detectModuleName(dir: dependency) ?? dependency.lastPathComponent
+//            )
+//            for file in findFiles(in: dependency) {
+//                _ = try SwiftTypeReader.Reader(context: context,module: module)
+//                    .read(file: URL(fileURLWithPath: file))
+//                inputFiles.append(InputFile(
+//                    name: URL(fileURLWithPath: file).lastPathComponent,
+//                    module: module
+//                ))
+//            }
+//        }
+
+        let input = Input(context: context, files: inputFiles)
         let sink = OutputSink(dstDirectory: dstDirectory)
+        try fileManager.createDirectory(at: dstDirectory, withIntermediateDirectories: true)
         try perform(input, sink)
 
         // リネームなどによって不要になった生成物を出力ディレクトリから削除
@@ -69,5 +107,12 @@ struct Generator {
                 try fileManager.removeItem(at: dstDirectory.appendingPathComponent(dstFile))
             }
         }
+    }
+
+    private func findFiles(in directory: URL) -> [String] {
+        (fileManager.subpaths(atPath: directory.path) ?? [])
+            .filter {
+                !fileManager.isDirectory(at: directory.appendingPathComponent($0))
+            }
     }
 }

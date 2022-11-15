@@ -22,5 +22,13 @@ import Foundation
         do {
             try await client.echo.emptyRequestAndResponse()
         }
+
+        do {
+            let res = try await client.account.signin(request: .init(
+                email: "example@example.com",
+                password: "password"
+            ))
+            dump(res)
+        }
     }
 }

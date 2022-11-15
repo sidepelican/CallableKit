@@ -30,8 +30,10 @@ class ImportMap {
 }
 
 struct GenerateTSClient {
+    var definitionModule: String
     var srcDirectory: URL
     var dstDirectory: URL
+    var dependencies: [URL]
     var nextjs: Bool
 
     private let importMap = ImportMap(defs: [
@@ -69,7 +71,7 @@ export interface IRawClient {
     ) throws -> String? {
         var codes: [TSDecl] = []
 
-        for stype in file.module.types.compactMap(ServiceProtocolScanner.scan) {
+        for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
             let clientInterface = TSInterfaceDecl(
                 name: "I\(stype.serviceName)Client",
                 decls: try stype.functions.map { (f) in
@@ -235,12 +237,12 @@ export interface IRawClient {
         return code.description
     }
 
-    static func outputFilename(for file: String) -> String {
-        URL(fileURLWithPath: file.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
+    static func outputFilename(for file: URL) -> String {
+        URL(fileURLWithPath: file.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
     }
 
     func run() throws {
-        var g = Generator(srcDirectory: srcDirectory, dstDirectory: dstDirectory)
+        var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
         g.isOutputFileName = { $0.hasSuffix(".gen.ts") }
 
         let generator = CodeGenerator(typeMap: typeMap)

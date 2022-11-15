@@ -1,9 +1,11 @@
+import { buildAccountClient } from "./Gen/Account.gen.js";
 import { buildEchoClient } from "./Gen/Echo.gen.js";
 import { RawAPIClient } from "./raw_client.js";
 
 async function main() {
   const rawClient = new RawAPIClient("http://127.0.0.1:8080");
   const echoClient = buildEchoClient(rawClient);
+  const accountClient = buildAccountClient(rawClient);
 
   {
     const res = await echoClient.hello({ name: "TypeScript" });
@@ -26,6 +28,14 @@ async function main() {
 
   {
     await echoClient.emptyRequestAndResponse();
+  }
+
+  {
+    let res = await accountClient.signin({
+        email: "example@example.com",
+        password: "password",
+    });
+    console.log(JSON.stringify(res));
   }
 }
 

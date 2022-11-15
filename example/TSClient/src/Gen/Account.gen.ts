@@ -1,3 +1,4 @@
+import { CodableResult, CodableResult_JSON, CodableResult_decode } from "./CodableResult.gen.js";
 import { IRawClient } from "./common.gen.js";
 import {
     Array_decode,
@@ -6,34 +7,26 @@ import {
     identity
 } from "./decode.gen.js";
 
-export interface IEchoClient {
-    hello(request: EchoHelloRequest): Promise<EchoHelloResponse>;
-    testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response>;
-    emptyRequestAndResponse(): Promise<void>;
+export interface IAccountClient {
+    signin(request: AccountSignin_Request): Promise<CodableResult<AccountSignin_Response, SubmitError<AccountSignin_Error>>>;
 }
 
-class EchoClient implements IEchoClient {
+class AccountClient implements IAccountClient {
     rawClient: IRawClient;
 
     constructor(rawClient: IRawClient) {
         this.rawClient = rawClient;
     }
 
-    async hello(request: EchoHelloRequest): Promise<EchoHelloResponse> {
-        return await this.rawClient.fetch(request, "Echo/hello") as EchoHelloResponse;
-    }
-
-    async testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response> {
-        const json = await this.rawClient.fetch(request, "Echo/testComplexType") as TestComplexType_Response_JSON;
-        return TestComplexType_Response_decode(json);
-    }
-
-    async emptyRequestAndResponse(): Promise<void> {
-        return await this.rawClient.fetch({}, "Echo/emptyRequestAndResponse") as void;
+    async signin(request: AccountSignin_Request): Promise<CodableResult<AccountSignin_Response, SubmitError<AccountSignin_Error>>> {
+        const json = await this.rawClient.fetch(request, "Account/signin") as CodableResult_JSON<AccountSignin_Response, SubmitError_JSON<AccountSignin_Error>>;
+        return CodableResult_decode(json, identity, (json: SubmitError_JSON<AccountSignin_Error>): SubmitError<AccountSignin_Error> => {
+            return SubmitError_decode(json, identity);
+        });
     }
 }
 
-export const buildEchoClient = (raw: IRawClient): IEchoClient => new EchoClient(raw);
+export const buildAccountClient = (raw: IRawClient): IAccountClient => new AccountClient(raw);
 
 export type EchoHelloRequest = {
     name: string;
