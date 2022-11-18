@@ -242,7 +242,7 @@ export interface IRawClient {
     }
 
     private func outputFilename(for file: Generator.InputFile) -> String {
-        let name = URL(fileURLWithPath: file.path.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
+        let name = URL(fileURLWithPath: file.file.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
         if file.module.name != definitionModule {
             return "\(file.module.name)/\(name)"
         } else {

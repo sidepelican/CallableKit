@@ -9,12 +9,7 @@ struct Generator {
     var fileManager = FileManager()
     var isOutputFileName: ((_ filename: String) -> Bool)?
 
-    struct InputFile {
-        var path: URL
-        var module: Module
-        var types: [SType]
-        var imports: [ImportDecl]
-    }
+    typealias InputFile = SwiftTypeReader.SourceFile
 
     struct OutputFile {
         var name: String
@@ -49,28 +44,21 @@ struct Generator {
     func run(_ perform: (Input, _ write: OutputSink) throws -> ()) throws {
         let context = SwiftTypeReader.Context()
 
-        _ = try SwiftTypeReader.Reader(
+        var inputFiles: [InputFile] = []
+        let sources = try SwiftTypeReader.Reader(
             context: context,
             module: context.getOrCreateModule(name: definitionModule)
         )
         .read(file: srcDirectory)
+        inputFiles.append(contentsOf: sources)
         for dependency in dependencies {
             let module = context.getOrCreateModule(
                 name: detectModuleName(dir: dependency) ?? dependency.lastPathComponent
             )
-            _ = try SwiftTypeReader.Reader(context: context,module: module)
+            let sources = try SwiftTypeReader.Reader(context: context,module: module)
                 .read(file: dependency)
+            inputFiles.append(contentsOf: sources)
         }
-
-        let inputFiles = context.modules
-            .filter { $0.name != "Swift" }
-            .flatMap { module -> [InputFile] in
-                let typeMap = [URL: [SType]](grouping: module.types, by: { $0.asSpecifier().file! })
-                let importMap = [URL: [ImportDecl]](grouping: module.imports, by: { $0.file! })
-                return typeMap.map { (file, types) in
-                    InputFile(path: file, module: module, types: types, imports: importMap[file] ?? [])
-                }
-            }
 
         let input = Input(context: context, files: inputFiles)
         let sink = OutputSink(dstDirectory: dstDirectory, fileManager: fileManager)

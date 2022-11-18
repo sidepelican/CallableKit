@@ -47,7 +47,7 @@ import \(definitionModule)
         try g.run { input, write in
             for inputFile in input.files {
                 guard let generated = try processFile(file: inputFile) else { continue }
-                let outputFile = URL(fileURLWithPath: inputFile.path.lastPathComponent.replacingOccurrences(of: ".swift", with: "Middleware.gen.swift")).lastPathComponent
+                let outputFile = URL(fileURLWithPath: inputFile.file.lastPathComponent.replacingOccurrences(of: ".swift", with: "Middleware.gen.swift")).lastPathComponent
                 try write(file: .init(
                     name: outputFile,
                     content: generated
