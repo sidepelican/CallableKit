@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/CodableToTypeScript",
       "state" : {
-        "revision" : "e3540954f4f0849c6150cc87a4c9e94823b94571",
-        "version" : "1.8.1"
+        "branch" : "str-2",
+        "revision" : "e37f8d69ffbc73b76e5926d41892bea3fe90e13c"
       }
     },
     {
@@ -16,6 +16,15 @@
       "state" : {
         "revision" : "9f39744e025c7d377987f30b03770805dcb0bcd1",
         "version" : "1.1.4"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections",
+      "state" : {
+        "revision" : "f504716c27d2e5d4144fa4794b12129301d17729",
+        "version" : "1.0.3"
       }
     },
     {
@@ -32,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/SwiftTypeReader",
       "state" : {
-        "revision" : "e142916c4fec656c150a615bd22f569d2c09d7dc",
-        "version" : "1.1.5"
+        "branch" : "decl-repr",
+        "revision" : "55a546f41f61d402eeaee131cb39c2b624688758"
       }
     }
   ],

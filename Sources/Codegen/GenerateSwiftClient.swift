@@ -92,7 +92,7 @@ extension StubClientProtocol {
         }
         if stubs.isEmpty { return nil }
 
-        let imports: String = Set([definitionModule] + file.imports.map(\.name))
+        let imports: String = Set([definitionModule] + file.imports.map(\.moduleName))
             .sorted()
             .map({ "import \($0)" })
             .joined(separator: "\n")

@@ -10,12 +10,12 @@ struct ServiceProtocolType {
         struct Request {
             var argName: String
             var typeName: String
-            var raw: SType
+            var raw: any SType
         }
         var request: Request?
         struct Response {
             var typeName: String
-            var raw: SType
+            var raw: any SType
         }
         var response: Response?
         var hasRequest: Bool {
@@ -24,22 +24,26 @@ struct ServiceProtocolType {
         var hasResponse: Bool {
             response != nil
         }
-        var raw: FunctionRequirement
+        var raw: FuncDecl
     }
     var functions: [Function]
     var raw: ProtocolType
 }
 
 enum ServiceProtocolScanner {
-    static func scan(_ stype: SType) -> ServiceProtocolType? {
-        guard let ptype = stype.protocol,
+    static func scan(_ decl: any TypeDecl) -> ServiceProtocolType? {
+        scan(decl.declaredInterfaceType)
+    }
+
+    static func scan(_ stype: any SType) -> ServiceProtocolType? {
+        guard let ptype = stype as? ProtocolType,
               ptype.name.hasSuffix("ServiceProtocol"),
-              !ptype.functionRequirements.isEmpty
+              !ptype.decl.functions.isEmpty
         else { return nil }
 
         let serviceName = ptype.name.replacingOccurrences(of: "ServiceProtocol", with: "")
 
-        let functions = ptype.functionRequirements.compactMap { fdecl -> ServiceProtocolType.Function? in
+        let functions = ptype.decl.functions.compactMap { fdecl -> ServiceProtocolType.Function? in
             guard fdecl.parameters.count <= 1 else {
                 print("⚠ the number of arguments must be zero or one. \(ptype.name).\(fdecl.name) is ignored.")
                 return nil
@@ -48,12 +52,12 @@ enum ServiceProtocolScanner {
             return ServiceProtocolType.Function(
                 name: fdecl.name,
                 request: fdecl.parameters.first.map {
-                    .init(argName: $0.name, typeName: $0.unresolvedType.description, raw: $0.type())
+                    .init(argName: $0.name!, typeName: $0.interfaceType.description, raw: $0.interfaceType)
                 },
-                response: fdecl.unresolvedOutputType.map {
+                response: fdecl.resultTypeRepr.map {
                     .init(
                         typeName: $0.description,
-                        raw: $0.resolved()
+                        raw: $0.resolve(from: fdecl)
                     )
                 },
                 raw: fdecl
