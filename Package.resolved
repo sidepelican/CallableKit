@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/CodableToTypeScript",
       "state" : {
-        "branch" : "str-2",
-        "revision" : "e37f8d69ffbc73b76e5926d41892bea3fe90e13c"
+        "branch" : "main",
+        "revision" : "6f601d6ba1e37f60ffefd1f8509fae6edeb49656"
       }
     },
     {
@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
       "state" : {
-        "revision" : "9f39744e025c7d377987f30b03770805dcb0bcd1",
-        "version" : "1.1.4"
+        "revision" : "fddd1c00396eed152c45a46bea9f47b98e59301d",
+        "version" : "1.2.0"
       }
     },
     {
@@ -41,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/SwiftTypeReader",
       "state" : {
-        "branch" : "decl-repr",
-        "revision" : "55a546f41f61d402eeaee131cb39c2b624688758"
+        "branch" : "main",
+        "revision" : "7be25045f38f90ceadda6230a61b620ad8035fae"
       }
     }
   ],

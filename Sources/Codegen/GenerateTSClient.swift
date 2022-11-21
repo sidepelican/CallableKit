@@ -272,9 +272,9 @@ export interface IRawClient {
         var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
         g.isOutputFileName = { $0.hasSuffix(".gen.ts") }
 
-        let generator = CodeGenerator(typeMap: typeMap)
-
         try g.run { input, write in
+            let generator = CodeGenerator(context: input.context, typeMap: typeMap)
+
             let common = Generator.OutputFile(
                 name: "common.gen.ts",
                 content: generateCommon()
