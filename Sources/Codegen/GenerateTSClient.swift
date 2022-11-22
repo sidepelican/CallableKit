@@ -10,19 +10,26 @@ fileprivate class ImportMap {
     }
 
     var defs: [Def] = []
-    func insert(type: SType, file: String, generator: CodeGenerator) throws {
-        let tsType = TSIdentifier(try generator.transpileTypeReference(type: type).description)
-        if self.file(for: tsType) != nil {
-            throw MessageError("Duplicated type: \(tsType). Using the same type name in multiple modules is not supported.")
+    func insert(type: any SType, file: String, generator: CodeGenerator) throws {
+        guard let tsType = try generator.transpileTypeReference(type: type).named else {
+            return
         }
 
-        defs.append((tsType, file))
+        let tsTypeName = TSIdentifier(tsType.name)
+        if self.file(for: tsTypeName) != nil {
+            throw MessageError("Duplicated type: \(tsTypeName). Using the same type name in multiple modules is not supported.")
+        }
+
+        defs.append((tsTypeName, file))
 
         if try generator.hasTranspiledJSONType(type: type) {
-            let tsJsonType = try generator.transpileTypeReferenceToJSON(type: type)
-            defs.append((TSIdentifier(tsJsonType.description), file))
+            if let tsJsonType = try generator.transpileTypeReferenceToJSON(type: type).named {
+                defs.append((TSIdentifier(tsJsonType.name), file))
+            }
 
-            if let tsDecodeFunc = try generator.generateDecodeFunction(type: type) {
+            if let type = type as? any NominalType,
+               let tsDecodeFunc = try generator.generateDecodeFunction(type: type.nominalTypeDecl)
+            {
                 defs.append((TSIdentifier(tsDecodeFunc.name), file))
             }
         }
@@ -30,6 +37,18 @@ fileprivate class ImportMap {
 
     func file(for typeName: TSIdentifier) -> String? {
         defs.first(where: { $0.typeName == typeName })?.fileName
+    }
+}
+
+extension GenericTypeDecl {
+    func walk(body: (any GenericTypeDecl) throws -> Void) rethrows {
+        try body(self)
+
+        if let self = self as? any NominalTypeDecl {
+            for type in self.types {
+                try type.walk(body: body)
+            }
+        }
     }
 }
 
@@ -53,8 +72,11 @@ struct GenerateTSClient {
         var typeMapTable: [String: String] = TypeMap.defaultTable
         typeMapTable["URL"] = "string"
         typeMapTable["Date"] = "string"
-        return TypeMap(table: typeMapTable) { typeSpecifier in
-            if typeSpecifier.lastElement.name.hasSuffix("ID") {
+        return TypeMap(table: typeMapTable) { typeRepr in
+            if let typeRepr = typeRepr as? IdentTypeRepr,
+               let lastElement = typeRepr.elements.last,
+               lastElement.name.hasSuffix("ID")
+            {
                 return "string"
             }
             return nil
@@ -191,21 +213,17 @@ export interface IRawClient {
 
         // Request・Response型定義の出力
         for stype in file.types {
-            guard stype.struct != nil
-                    || (stype.enum != nil && !stype.enum!.caseElements.isEmpty)
-                    || stype.regular?.types.isEmpty == false
+            guard stype is StructDecl
+                    || ((stype as? EnumDecl)?.caseElements.isEmpty ?? true) == false
+                    || stype.types.isEmpty == false
             else {
                 continue
             }
 
             // 型定義とjson変換関数だけを抜き出し
-            func walk(stype: SType) throws {
+            try stype.walk { (stype) in
                 codes += try generator.generateTypeOwnDeclarations(type: stype).decls
-                for stype in stype.regular?.types ?? [] {
-                    try walk(stype: stype)
-                }
             }
-            try walk(stype: stype)
         }
 
         if codes.isEmpty { return nil }
@@ -254,9 +272,9 @@ export interface IRawClient {
         var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
         g.isOutputFileName = { $0.hasSuffix(".gen.ts") }
 
-        let generator = CodeGenerator(typeMap: typeMap)
-
         try g.run { input, write in
+            let generator = CodeGenerator(context: input.context, typeMap: typeMap)
+
             let common = Generator.OutputFile(
                 name: "common.gen.ts",
                 content: generateCommon()
@@ -273,15 +291,10 @@ export interface IRawClient {
             for inputFile in input.files {
                 let outputFile = outputFilename(for: inputFile)
 
-                func walk(stype: SType) throws {
-                    try importMap.insert(type: stype, file: outputFile, generator: generator)
-                    for stype in stype.regular?.types ?? [] {
-                        try walk(stype: stype)
-                    }
-                }
-
                 for stype in inputFile.types {
-                    try walk(stype: stype)
+                    try stype.walk { (stype) in
+                        try importMap.insert(type: stype.declaredInterfaceType, file: outputFile, generator: generator)
+                    }
                 }
             }
 
@@ -299,12 +312,12 @@ export interface IRawClient {
 }
 
 extension CodeGenerator {
-    fileprivate func tsName(stype: SType) throws -> TSIdentifier {
+    fileprivate func tsName(stype: any SType) throws -> TSIdentifier {
         let tsType = try transpileTypeReference(type: stype)
         return .init(tsType.description)
     }
 
-    fileprivate func tsJsonName(stype: SType) throws -> TSIdentifier {
+    fileprivate func tsJsonName(stype: any SType) throws -> TSIdentifier {
         let tsType = try transpileTypeReferenceToJSON(type: stype)
         return .init(tsType.description)
     }
