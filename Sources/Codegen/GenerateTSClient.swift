@@ -1,7 +1,7 @@
 import CodableToTypeScript
 import Foundation
 import SwiftTypeReader
-import TSCodeModule
+import TypeScriptAST
 
 fileprivate class ImportMap {
     typealias Def = (typeName: TSIdentifier, fileName: String)
@@ -11,7 +11,7 @@ fileprivate class ImportMap {
 
     var defs: [Def] = []
     func insert(type: any SType, file: String, generator: CodeGenerator) throws {
-        guard let tsType = try generator.transpileTypeReference(type: type).named else {
+        guard let tsType = try generator.transpileTypeReference(type: type) as? TSIdentType else {
             return
         }
 
@@ -23,7 +23,7 @@ fileprivate class ImportMap {
         defs.append((tsTypeName, file))
 
         if try generator.hasTranspiledJSONType(type: type) {
-            if let tsJsonType = try generator.transpileTypeReferenceToJSON(type: type).named {
+            if let tsJsonType = try generator.transpileTypeReferenceToJSON(type: type) as? TSIdentType {
                 defs.append((TSIdentifier(tsJsonType.name), file))
             }
 
@@ -99,114 +99,111 @@ export interface IRawClient {
 
         for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
             let clientInterface = TSInterfaceDecl(
+                modifiers: [.export],
                 name: "I\(stype.serviceName)Client",
-                decls: try stype.functions.map { (f) in
-                    let res: TSType = try f.response.map { try generator.transpileTypeReference(type: $0.raw) } ?? .named("void")
+                body: TSBlockStmt(try stype.functions.map { (f) in
+                    let res: any TSType = try f.response.map { try generator.transpileTypeReference(type: $0.raw) } ?? TSIdentType.void
                     let method = TSMethodDecl(
                         name: f.name,
-                        parameters: try f.request.map {
+                        params: try f.request.map {
                             [.init(name: $0.argName, type: try generator.transpileTypeReferenceToJSON(type: $0.raw))]
                         } ?? [],
-                        returnType: .named("Promise", genericArguments: [.init(res)]),
-                        items: nil
+                        result: TSIdentType.promise(res)
                     )
-                    return .method(method)
-                }
+                    return method
+                })
             )
-            codes.append(.interface(clientInterface))
+            codes.append(clientInterface)
 
             let functionsDecls: [TSMethodDecl] = try stype.functions.map { f in
-                let res: TSType = try f.response.map { try generator.transpileTypeReference(type: $0.raw) } ?? .named("void")
+                let res: TSType = try f.response.map { try generator.transpileTypeReference(type: $0.raw) } ?? TSIdentType.void
 
-                let fetchExpr: TSExpr = .call(
-                    callee: .memberAccess(
-                        base: .memberAccess(
-                            base: .identifier("this"),
-                            name: "rawClient"
+                let fetchExpr: any TSExpr = TSCallExpr(
+                    callee: TSMemberExpr(
+                        base: TSMemberExpr(
+                            base: TSIdentExpr.this,
+                            name: TSIdentExpr("rawClient")
                         ),
-                        name: "fetch"
+                        name: TSIdentExpr("fetch")
                     ),
-                    arguments: [
-                        .init(f.request.map { .identifier($0.argName) } ?? .object([])),
-                        .init(.stringLiteral("\(stype.serviceName)/\(f.name)"))
+                    args: [
+                        f.request.map { TSIdentExpr($0.argName) } ?? TSObjectExpr([]),
+                        TSStringLiteralExpr("\(stype.serviceName)/\(f.name)")
                     ]
                 )
 
-                let blockBody: [TSBlockItem]
+                let blockBody: [any ASTNode]
                 if let sRes = f.response?.raw,
                    try generator.hasTranspiledJSONType(type: sRes)
                 {
                     let jsonTsType = try generator.transpileTypeReferenceToJSON(type: sRes)
-                    let decodeExpr = try generator.generateDecodeValueExpression(type: sRes, expr: .identifier("json"))
+                    let decodeExpr = try generator.generateDecodeValueExpression(type: sRes, expr: TSIdentExpr("json"))
 
                     blockBody = [
-                        .decl(.var(
-                            kind: "const", name: "json",
-                            initializer: .prefixOperator(
-                                "await",
-                                .infixOperator(fetchExpr, "as", .type(jsonTsType))
+                        TSVarDecl(
+                            kind: .const, name: "json",
+                            initializer: TSAwaitExpr(
+                                TSAsExpr(fetchExpr, jsonTsType)
                             )
-                        )),
-                        .stmt(.return(decodeExpr))
+                        ),
+                        TSReturnStmt(decodeExpr)
                     ]
                 } else {
                     blockBody = [
-                        .stmt(.return(
-                            .prefixOperator(
-                                "await",
-                                .infixOperator(fetchExpr, "as", .type(res))
+                        TSReturnStmt(
+                            TSAwaitExpr(
+                                TSAsExpr(fetchExpr, res)
                             )
-                        ))
+                        )
                     ]
                 }
 
                 return TSMethodDecl(
-                    modifiers: ["async"],
+                    modifiers: [.async],
                     name: f.name,
-                    parameters: try f.request.map {
+                    params: try f.request.map {
                         [.init(
                             name: $0.argName,
                             type: try generator.transpileTypeReferenceToJSON(type: $0.raw)
-                        ) ]
+                        )]
                     } ?? [],
-                    returnType: .named("Promise", genericArguments: [.init(res)]),
-                    items: blockBody
+                    result: TSIdentType.promise(res),
+                    body: TSBlockStmt(blockBody)
                 )
             }
 
             let clientClass = TSClassDecl(
-                export: false,
                 name: "\(stype.serviceName)Client",
-                implements: [.named(clientInterface.name)],
-                items: [
-                    .decl(.field(TSFieldDecl(
-                        name: "rawClient", type: .named("IRawClient"))
-                    )),
-                    .decl(.method(TSMethodDecl(
+                implements: [TSIdentType(clientInterface.name)],
+                body: TSBlockStmt([
+                    TSFieldDecl(
+                        name: "rawClient", type: TSIdentType("IRawClient")
+                    ),
+                    TSMethodDecl(
                         name: "constructor",
-                        parameters: [.init(name: "rawClient", type: .named("IRawClient"))],
-                        returnType: nil,
-                        items: [
-                            .expr(.infixOperator(
-                                .memberAccess(base: .identifier("this"), name: "rawClient"),
-                                "=", .identifier("rawClient")
-                            ))
-                        ]
-                    )))
-                ] + functionsDecls.map { .decl(.method($0)) }
+                        params: [.init(name: "rawClient", type: TSIdentType("IRawClient"))],
+                        result: nil,
+                        body: TSBlockStmt([
+                            TSAssignExpr(
+                                TSMemberExpr(base: TSIdentExpr.this, name: TSIdentExpr("rawClient")),
+                                TSIdentExpr("rawClient")
+                            )
+                        ])
+                    )
+                ] + functionsDecls)
             )
-            codes.append(.class(clientClass))
+            codes.append(clientClass)
 
-            codes.append(.var(
-                export: true,
-                kind: "const", name: "build\(stype.serviceName)Client",
-                initializer: .closure(
-                    parameters: [.init(name: "raw", type: .named("IRawClient"))],
-                    returnType: .named(clientInterface.name),
-                    body: .expr(.new(
-                        callee: .identifier("\(stype.serviceName)Client"),
-                        arguments: [.init(.identifier("raw"))]
-                    ))
+            codes.append(TSVarDecl(
+                modifiers: [.export],
+                kind: .const, name: "build\(stype.serviceName)Client",
+                initializer: TSClosureExpr(
+                    params: [.init(name: "raw", type: TSIdentType("IRawClient"))],
+                    result: TSIdentType(clientInterface.name),
+                    body: TSNewExpr(
+                        callee: TSIdentType("\(stype.serviceName)Client"),
+                        args: [TSIdentExpr("raw")]
+                    )
                 )
             ))
         }
@@ -228,9 +225,9 @@ export interface IRawClient {
 
         if codes.isEmpty { return nil }
 
-        var code = TSCode(codes.map { .decl($0) })
+        let code = TSSourceFile(codes)
 
-        let deps = DependencyScanner().scan(code: code).map { TSIdentifier($0) }
+        let deps = code.scanDependency().map { TSIdentifier($0) }
 
         var nameMap: [String: [TSIdentifier]] = [:]
         for dep in deps {
@@ -254,9 +251,9 @@ export interface IRawClient {
             return TSImportDecl(names: names.map(\.rawValue), from: file)
         }
 
-        code.items.insert(contentsOf: importDecls.map { .decl(.import($0)) }, at: 0)
+        code.elements.insert(contentsOf: importDecls, at: 0)
 
-        return code.description
+        return code.print()
     }
 
     private func outputFilename(for file: Generator.InputFile) -> String {
@@ -283,7 +280,7 @@ export interface IRawClient {
 
             let decoderHelper = Generator.OutputFile(
                 name: "decode.gen.ts",
-                content: generator.generateHelperLibrary().description
+                content: generator.generateHelperLibrary().print()
             )
             try write(file: decoderHelper)
 
@@ -314,12 +311,12 @@ export interface IRawClient {
 extension CodeGenerator {
     fileprivate func tsName(stype: any SType) throws -> TSIdentifier {
         let tsType = try transpileTypeReference(type: stype)
-        return .init(tsType.description)
+        return .init(tsType.print())
     }
 
     fileprivate func tsJsonName(stype: any SType) throws -> TSIdentifier {
         let tsType = try transpileTypeReferenceToJSON(type: stype)
-        return .init(tsType.description)
+        return .init(tsType.print())
     }
 }
 
