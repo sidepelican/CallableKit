@@ -1,3 +1,3 @@
 export interface IRawClient {
-  fetch(request: unknown, servicePath: string): Promise<unknown>
+    fetch(request: unknown, servicePath: string): Promise<unknown>;
 }

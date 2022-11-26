@@ -3,43 +3,6 @@ import Foundation
 import SwiftTypeReader
 import TypeScriptAST
 
-fileprivate class ImportMap {
-    typealias Def = (typeName: TSIdentifier, fileName: String)
-    init(defs: [Def]) {
-        self.defs = defs
-    }
-
-    var defs: [Def] = []
-    func insert(type: any SType, file: String, generator: CodeGenerator) throws {
-        guard let tsType = try generator.transpileTypeReference(type: type) as? TSIdentType else {
-            return
-        }
-
-        let tsTypeName = TSIdentifier(tsType.name)
-        if self.file(for: tsTypeName) != nil {
-            throw MessageError("Duplicated type: \(tsTypeName). Using the same type name in multiple modules is not supported.")
-        }
-
-        defs.append((tsTypeName, file))
-
-        if try generator.hasTranspiledJSONType(type: type) {
-            if let tsJsonType = try generator.transpileTypeReferenceToJSON(type: type) as? TSIdentType {
-                defs.append((TSIdentifier(tsJsonType.name), file))
-            }
-
-            if let type = type as? any NominalType,
-               let tsDecodeFunc = try generator.generateDecodeFunction(type: type.nominalTypeDecl)
-            {
-                defs.append((TSIdentifier(tsDecodeFunc.name), file))
-            }
-        }
-    }
-
-    func file(for typeName: TSIdentifier) -> String? {
-        defs.first(where: { $0.typeName == typeName })?.fileName
-    }
-}
-
 extension GenericTypeDecl {
     func walk(body: (any GenericTypeDecl) throws -> Void) rethrows {
         try body(self)
@@ -52,21 +15,17 @@ extension GenericTypeDecl {
     }
 }
 
+struct SourceEntry {
+    var file: String
+    var source: TSSourceFile
+}
+
 struct GenerateTSClient {
     var definitionModule: String
     var srcDirectory: URL
     var dstDirectory: URL
     var dependencies: [URL]
     var nextjs: Bool
-
-    private let importMap = ImportMap(defs: [
-        (TSIdentifier("IRawClient"), "common.gen.ts"),
-        (TSIdentifier("identity"), "decode.gen.ts"),
-        (TSIdentifier("OptionalField_decode"), "decode.gen.ts"),
-        (TSIdentifier("Optional_decode"), "decode.gen.ts"),
-        (TSIdentifier("Array_decode"), "decode.gen.ts"),
-        (TSIdentifier("Dictionary_decode"), "decode.gen.ts"),
-    ])
 
     private let typeMap: TypeMap = {
         var typeMapTable: [String: String] = TypeMap.defaultTable
@@ -83,18 +42,24 @@ struct GenerateTSClient {
         }
     }()
 
-    private func generateCommon() -> String {
-        """
-export interface IRawClient {
-  fetch(request: unknown, servicePath: string): Promise<unknown>
-}
-"""
+    private func generateCommon() -> TSSourceFile {
+        return TSSourceFile([
+            TSInterfaceDecl(modifiers: [.export], name: "IRawClient", body: TSBlockStmt([
+                TSMethodDecl(
+                    name: "fetch", params: [
+                        .init(name: "request", type: TSIdentType.unknown),
+                        .init(name: "servicePath", type: TSIdentType.string)
+                    ],
+                    result: TSIdentType.promise(TSIdentType.unknown)
+                )
+            ]))
+        ])
     }
 
     private func processFile(
         generator: CodeGenerator,
         file: Generator.InputFile
-    ) throws -> String? {
+    ) throws -> TSSourceFile? {
         var codes: [TSDecl] = []
 
         for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
@@ -225,35 +190,7 @@ export interface IRawClient {
 
         if codes.isEmpty { return nil }
 
-        let code = TSSourceFile(codes)
-
-        let deps = code.scanDependency().map { TSIdentifier($0) }
-
-        var nameMap: [String: [TSIdentifier]] = [:]
-        for dep in deps {
-            if let file = importMap.file(for: dep) {
-                nameMap[file, default: []].append(dep)
-            }
-        }
-
-        let files = nameMap.keys.sorted()
-
-        let importDecls: [TSImportDecl] = files.map { (file) in
-            let names = nameMap[file] ?? []
-            var file = file
-            if file.hasSuffix(".ts") {
-                if nextjs {
-                    file = "./" + (file as NSString).deletingPathExtension
-                } else {
-                    file = "./" + (file as NSString).deletingPathExtension + ".js"
-                }
-            }
-            return TSImportDecl(names: names.map(\.rawValue), from: file)
-        }
-
-        code.elements.insert(contentsOf: importDecls, at: 0)
-
-        return code.print()
+        return TSSourceFile(codes)
     }
 
     private func outputFilename(for file: Generator.InputFile) -> String {
@@ -265,71 +202,74 @@ export interface IRawClient {
         }
     }
 
+    private func fixImport(decl: TSImportDecl) {
+        var file = decl.from
+        if file.hasSuffix(".ts") {
+            if nextjs {
+                file = "./" + (file as NSString).deletingPathExtension
+            } else {
+                file = "./" + (file as NSString).deletingPathExtension + ".js"
+            }
+        }
+        decl.from = file
+    }
+
     func run() throws {
         var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
         g.isOutputFileName = { $0.hasSuffix(".gen.ts") }
 
+        var sources: [SourceEntry] = []
+
         try g.run { input, write in
             let generator = CodeGenerator(context: input.context, typeMap: typeMap)
 
-            let common = Generator.OutputFile(
-                name: "common.gen.ts",
-                content: generateCommon()
-            )
-            try write(file: common)
-
-            let decoderHelper = Generator.OutputFile(
-                name: "decode.gen.ts",
-                content: generator.generateHelperLibrary().print()
-            )
-            try write(file: decoderHelper)
-
-            // 1st pass
-            for inputFile in input.files {
-                let outputFile = outputFilename(for: inputFile)
-
-                for stype in inputFile.types {
-                    try stype.walk { (stype) in
-                        try importMap.insert(type: stype.declaredInterfaceType, file: outputFile, generator: generator)
-                    }
-                }
-            }
-
-            // 2nd pass
+            // generate all ts codes
+            sources.append(.init(
+                file: "common.gen.ts",
+                source: generateCommon()
+            ))
+            sources.append(.init(
+                file: "decode.gen.ts",
+                source: generator.generateHelperLibrary()
+            ))
             for inputFile in input.files {
                 guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
                 let outputFile = outputFilename(for: inputFile)
+                sources.append(
+                    .init(
+                        file: outputFile,
+                        source: generated
+                    )
+                )
+            }
+
+            // collect all symbols
+            var symbolTable = SymbolTable()
+            for source in sources {
+                for symbol in source.source.memberDeclaredNames {
+                    if let _ = symbolTable.find(symbol){
+                        throw MessageError("Duplicated symbol: \(symbol). Using the same name in multiple modules is not supported.")
+                    }
+                    symbolTable.add(symbol: symbol, file: .file(source.file))
+                }
+            }
+
+            // generate imports
+            for source in sources {
+                let imports = try source.source.buildAutoImportDecls(symbolTable: symbolTable)
+                for `import` in imports {
+                    fixImport(decl: `import`)
+                }
+                source.source.replaceImportDecls(imports)
+            }
+
+            // write
+            for source in sources {
                 try write(file: .init(
-                    name: outputFile,
-                    content: generated
+                    name: source.file,
+                    content: source.source.print()
                 ))
             }
         }
     }
-}
-
-extension CodeGenerator {
-    fileprivate func tsName(stype: any SType) throws -> TSIdentifier {
-        let tsType = try transpileTypeReference(type: stype)
-        return .init(tsType.print())
-    }
-
-    fileprivate func tsJsonName(stype: any SType) throws -> TSIdentifier {
-        let tsType = try transpileTypeReferenceToJSON(type: stype)
-        return .init(tsType.print())
-    }
-}
-
-fileprivate func unwrapGenerics(typeName: TSIdentifier) -> [TSIdentifier] {
-    return typeName.rawValue
-        .components(separatedBy: .whitespaces.union(.init(charactersIn: "<>,")))
-        .filter { !$0.isEmpty }
-        .map { TSIdentifier($0) }
-}
-
-enum _TSIdentifier {}
-typealias TSIdentifier = UnitStringType<_TSIdentifier>
-
-extension TSIdentifier {
-    static var void: Self { .init("void") }
 }
