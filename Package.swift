@@ -18,8 +18,8 @@ let package = Package(
             name: "Codegen",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "CodableToTypeScript", package: "CodableToTypeScript"),
-                .product(name: "SwiftTypeReader", package: "SwiftTypeReader")
+                "CodableToTypeScript",
+                "SwiftTypeReader"
             ]
         ),
     ]
