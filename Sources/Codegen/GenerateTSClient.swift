@@ -15,7 +15,7 @@ extension GenericTypeDecl {
     }
 }
 
-struct SourceEntry {
+fileprivate struct SourceEntry {
     var file: String
     var source: TSSourceFile
 }
