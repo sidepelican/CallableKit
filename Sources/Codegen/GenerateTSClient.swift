@@ -28,15 +28,16 @@ struct GenerateTSClient {
     var nextjs: Bool
 
     private let typeMap: TypeMap = {
-        var typeMapTable: [String: String] = TypeMap.defaultTable
-        typeMapTable["URL"] = "string"
-        typeMapTable["Date"] = "string"
-        return TypeMap(table: typeMapTable) { typeRepr in
+        var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
+        typeMapTable["URL"] = .init(name: "string")
+        typeMapTable["Date"] = .init(name: "string")
+        return TypeMap(table: typeMapTable) { type in
+            let typeRepr = type.toTypeRepr(containsModule: false)
             if let typeRepr = typeRepr as? IdentTypeRepr,
                let lastElement = typeRepr.elements.last,
                lastElement.name.hasSuffix("ID")
             {
-                return "string"
+                return .init(name: "string")
             }
             return nil
         }
@@ -67,11 +68,11 @@ struct GenerateTSClient {
                 modifiers: [.export],
                 name: "I\(stype.serviceName)Client",
                 body: TSBlockStmt(try stype.functions.map { (f) in
-                    let res: any TSType = try f.response.map { try generator.transpileTypeReference(type: $0.raw) } ?? TSIdentType.void
+                    let res: any TSType = try f.response.map { try generator.converter(for: $0.raw).type(for: .entity) } ?? TSIdentType.void
                     let method = TSMethodDecl(
                         name: f.name,
                         params: try f.request.map {
-                            [.init(name: $0.argName, type: try generator.transpileTypeReferenceToJSON(type: $0.raw))]
+                            [.init(name: $0.argName, type: try generator.converter(for: $0.raw).type(for: .json))]
                         } ?? [],
                         result: TSIdentType.promise(res)
                     )
@@ -81,7 +82,7 @@ struct GenerateTSClient {
             codes.append(clientInterface)
 
             let functionsDecls: [TSMethodDecl] = try stype.functions.map { f in
-                let res: TSType = try f.response.map { try generator.transpileTypeReference(type: $0.raw) } ?? TSIdentType.void
+                let res: TSType = try f.response.map { try generator.converter(for: $0.raw).type(for: .entity) } ?? TSIdentType.void
 
                 let fetchExpr: any TSExpr = TSCallExpr(
                     callee: TSMemberExpr(
@@ -99,10 +100,10 @@ struct GenerateTSClient {
 
                 let blockBody: [any ASTNode]
                 if let sRes = f.response?.raw,
-                   try generator.hasTranspiledJSONType(type: sRes)
+                   try generator.converter(for: sRes).hasJSONType()
                 {
-                    let jsonTsType = try generator.transpileTypeReferenceToJSON(type: sRes)
-                    let decodeExpr = try generator.generateDecodeValueExpression(type: sRes, expr: TSIdentExpr("json"))
+                    let jsonTsType = try generator.converter(for: sRes).type(for: .json)
+                    let decodeExpr = try generator.converter(for: sRes).callDecode(json: TSIdentExpr("json"))
 
                     blockBody = [
                         TSVarDecl(
@@ -129,7 +130,7 @@ struct GenerateTSClient {
                     params: try f.request.map {
                         [.init(
                             name: $0.argName,
-                            type: try generator.transpileTypeReferenceToJSON(type: $0.raw)
+                            type: try generator.converter(for: $0.raw).type(for: .json)
                         )]
                     } ?? [],
                     result: TSIdentType.promise(res),
@@ -184,7 +185,7 @@ struct GenerateTSClient {
 
             // 型定義とjson変換関数だけを抜き出し
             try stype.walk { (stype) in
-                codes += try generator.generateTypeOwnDeclarations(type: stype).decls
+                codes += try generator.converter(for: stype).ownDecls().decls
             }
         }
 
@@ -221,7 +222,10 @@ struct GenerateTSClient {
         var sources: [SourceEntry] = []
 
         try g.run { input, write in
-            let generator = CodeGenerator(context: input.context, typeMap: typeMap)
+            let generator = CodeGenerator(
+                context: input.context,
+                typeConverterProvider: TypeConverterProvider(typeMap: typeMap)
+            )
 
             // generate all ts codes
             sources.append(.init(

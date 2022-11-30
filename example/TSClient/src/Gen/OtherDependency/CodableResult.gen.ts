@@ -46,3 +46,34 @@ export function CodableResult_decode<
         throw new Error("unknown kind");
     }
 }
+
+export function CodableResult_encode<
+    T,
+    E,
+    T_JSON,
+    E_JSON
+>(entity: CodableResult<T, E>, T_encode: (entity: T) => T_JSON, E_encode: (entity: E) => E_JSON): CodableResult_JSON<T_JSON, E_JSON> {
+    switch (entity.kind) {
+    case "success":
+        {
+            const e = entity.success;
+            return {
+                success: {
+                    _0: T_encode(e._0)
+                }
+            };
+        }
+    case "failure":
+        {
+            const e = entity.failure;
+            return {
+                failure: {
+                    _0: E_encode(e._0)
+                }
+            };
+        }
+    default:
+        const check: never = entity;
+        throw new Error("invalid case: " + check);
+    }
+}
