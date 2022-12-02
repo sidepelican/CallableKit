@@ -1,4 +1,5 @@
 import ArgumentParser
+import CallableKit
 import Foundation
 
 @main struct Codegen: ParsableCommand {
@@ -27,46 +28,16 @@ import Foundation
     var nextjs: Bool = false
 
     mutating func run() throws {
-        guard let module = module ?? detectModuleName(dir: definitionDirectory) else {
-            throw MessageError("definitionsModuleNameNotFound")
-        }
-
-        if let client_out = client_out {
-            try GenerateSwiftClient(
-                definitionModule: module,
-                srcDirectory: definitionDirectory,
-                dstDirectory: client_out,
-                dependencies: dependency
-            ).run()
-        }
-
-        if let middleware_out = middleware_out {
-            try GenerateMiddleware(
-                definitionModule: module,
-                srcDirectory: definitionDirectory,
-                dstDirectory: middleware_out,
-                dependencies: dependency
-            ).run()
-        }
-
-        if let vapor_out = vapor_out {
-            try GenerateVaporProvider(
-                definitionModule: module,
-                srcDirectory: definitionDirectory,
-                dstDirectory: vapor_out,
-                dependencies: dependency
-            ).run()
-        }
-
-        if let ts_out = ts_out {
-            try GenerateTSClient(
-                definitionModule: module,
-                srcDirectory: definitionDirectory,
-                dstDirectory: ts_out,
-                dependencies: dependency,
-                nextjs: nextjs
-            ).run()
-        }
+        try Runner(
+            definitionDirectory: definitionDirectory,
+            clientOut: client_out,
+            middlewareOut: middleware_out,
+            vaporOut: vapor_out,
+            tsOut: ts_out,
+            module: module,
+            dependencies: dependency,
+            nextjs: nextjs
+        ).run()
     }
 }
 
