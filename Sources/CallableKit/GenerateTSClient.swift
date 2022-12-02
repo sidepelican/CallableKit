@@ -3,18 +3,6 @@ import Foundation
 import SwiftTypeReader
 import TypeScriptAST
 
-extension GenericTypeDecl {
-    func walk(body: (any GenericTypeDecl) throws -> Void) rethrows {
-        try body(self)
-
-        if let self = self as? any NominalTypeDecl {
-            for type in self.types {
-                try type.walk(body: body)
-            }
-        }
-    }
-}
-
 fileprivate struct SourceEntry {
     var file: String
     var source: TSSourceFile
@@ -32,6 +20,12 @@ struct GenerateTSClient {
         typeMapTable["URL"] = .init(name: "string")
         typeMapTable["Date"] = .init(name: "string")
         return TypeMap(table: typeMapTable) { type in
+            if let type = type.asNominal,
+               let _ = type.nominalTypeDecl.rawValueType()
+            {
+                return nil
+            }
+
             let typeRepr = type.toTypeRepr(containsModule: false)
             if let typeRepr = typeRepr as? IdentTypeRepr,
                let lastElement = typeRepr.elements.last,
@@ -151,15 +145,15 @@ struct GenerateTSClient {
         // Request・Response型定義の出力
         for stype in file.types {
             guard stype is StructDecl
-                    || ((stype as? EnumDecl)?.caseElements.isEmpty ?? true) == false
-                    || stype.types.isEmpty == false
+                    || stype is EnumDecl
             else {
                 continue
             }
-
             // 型定義とjson変換関数だけを抜き出し
             try stype.walk { (stype) in
-                codes += try generator.converter(for: stype).ownDecls().decls
+                let converter = try generator.converter(for: stype.declaredInterfaceType)
+                codes += try converter.ownDecls().decls
+                return true
             }
         }
 
