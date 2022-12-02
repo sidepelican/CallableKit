@@ -11,7 +11,7 @@ struct EchoService: EchoServiceProtocol {
         )
     }
 
-    func testTypicalEntity(request: APIDefinition.User) async throws -> APIDefinition.User {
+    func testTypicalEntity(request: User) async throws -> User {
         request
     }
 

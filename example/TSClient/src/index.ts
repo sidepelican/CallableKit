@@ -11,6 +11,11 @@ async function main() {
     const res = await echoClient.hello({ name: "TypeScript" });
     console.log(res.message);
   }
+
+  {
+    const res = await echoClient.testTypicalEntity({ id: "id", name: "name" });
+    console.log(JSON.stringify(res));
+  }
   
   {
     const res = await echoClient.testComplexType({

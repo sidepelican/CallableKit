@@ -6,6 +6,11 @@ import Foundation
 
         do {
             let res = try await client.echo.hello(request: .init(name: "Swift"))
+            print(res.message)
+        }
+
+        do {
+            let res = try await client.echo.testTypicalEntity(request: .init(id: .init(rawValue: "id"), name: "name"))
             dump(res)
         }
 
