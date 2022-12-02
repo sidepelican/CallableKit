@@ -30,7 +30,7 @@ struct GenerateTSClient {
     private let typeMap: TypeMap = {
         var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
         typeMapTable["URL"] = .init(name: "string")
-        typeMapTable["Date"] = .init(name: "string")
+//        typeMapTable["Date"] = .init(name: "string", decode: "Date_decode", encode: "Date_encode")
         return TypeMap(table: typeMapTable) { type in
             let typeRepr = type.toTypeRepr(containsModule: false)
             if let typeRepr = typeRepr as? IdentTypeRepr,
@@ -72,7 +72,7 @@ struct GenerateTSClient {
                     let method = TSMethodDecl(
                         name: f.name,
                         params: try f.request.map {
-                            [.init(name: $0.argName, type: try generator.converter(for: $0.raw).type(for: .json))]
+                            [.init(name: $0.argName, type: try generator.converter(for: $0.raw).type(for: .entity))]
                         } ?? [],
                         result: TSIdentType.promise(res)
                     )
@@ -84,13 +84,22 @@ struct GenerateTSClient {
             let functionsDecls: [TSMethodDecl] = try stype.functions.map { f in
                 let res: TSType = try f.response.map { try generator.converter(for: $0.raw).type(for: .entity) } ?? TSIdentType.void
 
+                let reqExpr: any TSExpr
+                if let sReq = f.request?.raw,
+                   try generator.converter(for: sReq).hasJSONType() {
+                    let encodeExpr = try generator.converter(for: sReq).callEncode(entity: TSIdentExpr(f.request!.argName))
+                    reqExpr = encodeExpr
+                } else {
+                    reqExpr = f.request.map { TSIdentExpr($0.argName) } ?? TSObjectExpr([])
+                }
+
                 let fetchExpr: any TSExpr = TSCallExpr(
                     callee: TSMemberExpr(
                         base: TSIdentExpr("raw"),
                         name: TSIdentExpr("fetch")
                     ),
                     args: [
-                        f.request.map { TSIdentExpr($0.argName) } ?? TSObjectExpr([]),
+                        reqExpr,
                         TSStringLiteralExpr("\(stype.serviceName)/\(f.name)")
                     ]
                 )
@@ -127,7 +136,7 @@ struct GenerateTSClient {
                     params: try f.request.map {
                         [.init(
                             name: $0.argName,
-                            type: try generator.converter(for: $0.raw).type(for: .json)
+                            type: try generator.converter(for: $0.raw).type(for: .entity)
                         )]
                     } ?? [],
                     result: TSIdentType.promise(res),
@@ -198,7 +207,16 @@ struct GenerateTSClient {
         try g.run { input, write in
             let generator = CodeGenerator(
                 context: input.context,
-                typeConverterProvider: TypeConverterProvider(typeMap: typeMap)
+                typeConverterProvider: TypeConverterProvider(typeMap: typeMap) { (generator, stype) in
+                    let repr = stype.toTypeRepr(containsModule: false)
+                    if let ident = repr.asIdent,
+                       let element = ident.elements.last,
+                       element.name == "Date"
+                    {
+                        return DateConverter(generator: generator, swiftType: stype)
+                    }
+                    return nil
+                }
             )
 
             // generate all ts codes
@@ -206,9 +224,11 @@ struct GenerateTSClient {
                 file: "common.gen.ts",
                 source: generateCommon()
             ))
+            let decodeLib = generator.generateHelperLibrary()
+            decodeLib.elements += try [DateConverter.encodeDecl(), DateConverter.decodeDecl()].compactMap({ $0 })
             sources.append(.init(
                 file: "decode.gen.ts",
-                source: generator.generateHelperLibrary()
+                source: decodeLib
             ))
             for inputFile in input.files {
                 guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
@@ -250,4 +270,62 @@ struct GenerateTSClient {
             }
         }
     }
+}
+
+fileprivate struct DateConverter: TypeConverter {
+    var generator: CodeGenerator
+    var swiftType: any SType
+
+    func name(for target: GenerationTarget) throws -> String {
+        switch target {
+        case .entity: return "Date"
+        case .json: return "string"
+        }
+    }
+
+    func typeDecl(for target: GenerationTarget) throws -> TSTypeDecl? {
+        return nil
+    }
+
+    func hasDecode() throws -> Bool {
+        return true
+    }
+
+    static func decodeName() throws -> String {
+        return "Date_decode"
+    }
+    func decodeName() throws -> String { try Self.decodeName() }
+
+    static func decodeDecl() throws -> TSFunctionDecl? {
+        return TSFunctionDecl(
+            modifiers: [.export],
+            name: try decodeName(),
+            params: [ .init(name: "iso", type: TSIdentType("string"))],
+            body: TSBlockStmt([
+                TSReturnStmt(TSNewExpr(callee: TSIdentType("Date"), args: [TSIdentExpr("iso")]))
+            ])
+        )
+    }
+    func decodeDecl() throws -> TSFunctionDecl? { try Self.decodeDecl() }
+
+    func hasEncode() throws -> Bool {
+        return true
+    }
+
+    static func encodeName() throws -> String {
+        return "Date_encode"
+    }
+    func encodeName() throws -> String { try Self.encodeName() }
+
+    static func encodeDecl() throws -> TSFunctionDecl? {
+        return TSFunctionDecl(
+            modifiers: [.export],
+            name: try encodeName(),
+            params: [.init(name: "d", type: TSIdentType("Date"))],
+            body: TSBlockStmt([
+                TSReturnStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("d"), name: TSIdentExpr("toISOString")), args: []))
+            ])
+        )
+    }
+    func encodeDecl() throws -> TSFunctionDecl? { try Self.encodeDecl() }
 }

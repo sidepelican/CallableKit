@@ -3,6 +3,8 @@ import Foundation
 public protocol EchoServiceProtocol {
     func hello(request: EchoHelloRequest) async throws -> EchoHelloResponse
 
+    func tommorow(now: Date) async throws -> Date
+
     func testTypicalEntity(request: User) async throws -> User
 
     func testComplexType(request: TestComplexType.Request) async throws -> TestComplexType.Response

@@ -1,4 +1,4 @@
-#!/bin/bash -uex
+#!/bin/bash -ue
 set -o pipefail
 
 if [ "$(uname)" == 'Darwin' ]; then

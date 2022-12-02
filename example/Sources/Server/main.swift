@@ -4,6 +4,8 @@ import Service
 let app = Application()
 defer { app.shutdown() }
 
+app.logger.logLevel = .error
+
 let echoProvider = EchoServiceProvider(bridge: .default) { req in
     makeEchoService()
 }

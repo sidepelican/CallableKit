@@ -49,3 +49,11 @@ export function Dictionary_encode<T, T_JSON>(entity: { [key: string]: T; }, T_en
     }
     return json;
 }
+
+export function Date_encode(d: Date) {
+    return d.toISOString();
+}
+
+export function Date_decode(iso: string) {
+    return new Date(iso);
+}
