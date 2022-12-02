@@ -86,10 +86,7 @@ struct GenerateTSClient {
 
                 let fetchExpr: any TSExpr = TSCallExpr(
                     callee: TSMemberExpr(
-                        base: TSMemberExpr(
-                            base: TSIdentExpr.this,
-                            name: TSIdentExpr("rawClient")
-                        ),
+                        base: TSIdentExpr("raw"),
                         name: TSIdentExpr("fetch")
                     ),
                     args: [
@@ -138,38 +135,15 @@ struct GenerateTSClient {
                 )
             }
 
-            let clientClass = TSClassDecl(
-                name: "\(stype.serviceName)Client",
-                implements: [TSIdentType(clientInterface.name)],
-                body: TSBlockStmt([
-                    TSFieldDecl(
-                        name: "rawClient", type: TSIdentType("IRawClient")
-                    ),
-                    TSMethodDecl(
-                        name: "constructor",
-                        params: [.init(name: "rawClient", type: TSIdentType("IRawClient"))],
-                        result: nil,
-                        body: TSBlockStmt([
-                            TSAssignExpr(
-                                TSMemberExpr(base: TSIdentExpr.this, name: TSIdentExpr("rawClient")),
-                                TSIdentExpr("rawClient")
-                            )
-                        ])
-                    )
-                ] + functionsDecls)
-            )
-            codes.append(clientClass)
-
             codes.append(TSVarDecl(
                 modifiers: [.export],
                 kind: .const, name: "build\(stype.serviceName)Client",
                 initializer: TSClosureExpr(
                     params: [.init(name: "raw", type: TSIdentType("IRawClient"))],
                     result: TSIdentType(clientInterface.name),
-                    body: TSNewExpr(
-                        callee: TSIdentType("\(stype.serviceName)Client"),
-                        args: [TSIdentExpr("raw")]
-                    )
+                    body: TSBlockStmt([
+                        TSReturnStmt(TSObjectExpr(functionsDecls.map(TSObjectExpr.Field.method)))
+                    ])
                 )
             ))
         }
