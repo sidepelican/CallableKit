@@ -17,32 +17,23 @@ export interface IEchoClient {
     emptyRequestAndResponse(): Promise<void>;
 }
 
-class EchoClient implements IEchoClient {
-    rawClient: IRawClient;
-
-    constructor(rawClient: IRawClient) {
-        this.rawClient = rawClient;
-    }
-
-    async hello(request: EchoHelloRequest): Promise<EchoHelloResponse> {
-        return await this.rawClient.fetch(request, "Echo/hello") as EchoHelloResponse;
-    }
-
-    async testTypicalEntity(request: User): Promise<User> {
-        return await this.rawClient.fetch(request, "Echo/testTypicalEntity") as User;
-    }
-
-    async testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response> {
-        const json = await this.rawClient.fetch(request, "Echo/testComplexType") as TestComplexType_Response_JSON;
-        return TestComplexType_Response_decode(json);
-    }
-
-    async emptyRequestAndResponse(): Promise<void> {
-        return await this.rawClient.fetch({}, "Echo/emptyRequestAndResponse") as void;
-    }
-}
-
-export const buildEchoClient = (raw: IRawClient): IEchoClient => new EchoClient(raw);
+export const buildEchoClient = (raw: IRawClient): IEchoClient => {
+    return {
+        async hello(request: EchoHelloRequest): Promise<EchoHelloResponse> {
+            return await raw.fetch(request, "Echo/hello") as EchoHelloResponse;
+        },
+        async testTypicalEntity(request: User): Promise<User> {
+            return await raw.fetch(request, "Echo/testTypicalEntity") as User;
+        },
+        async testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response> {
+            const json = await raw.fetch(request, "Echo/testComplexType") as TestComplexType_Response_JSON;
+            return TestComplexType_Response_decode(json);
+        },
+        async emptyRequestAndResponse(): Promise<void> {
+            return await raw.fetch({}, "Echo/emptyRequestAndResponse") as void;
+        }
+    };
+};
 
 export type EchoHelloRequest = {
     name: string;

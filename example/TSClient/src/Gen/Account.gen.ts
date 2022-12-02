@@ -7,22 +7,16 @@ export interface IAccountClient {
     signin(request: AccountSignin_Request): Promise<CodableResult<AccountSignin_Response, SubmitError<AccountSignin_Error>>>;
 }
 
-class AccountClient implements IAccountClient {
-    rawClient: IRawClient;
-
-    constructor(rawClient: IRawClient) {
-        this.rawClient = rawClient;
-    }
-
-    async signin(request: AccountSignin_Request): Promise<CodableResult<AccountSignin_Response, SubmitError<AccountSignin_Error>>> {
-        const json = await this.rawClient.fetch(request, "Account/signin") as CodableResult_JSON<AccountSignin_Response, SubmitError_JSON<AccountSignin_Error>>;
-        return CodableResult_decode(json, identity, (json: SubmitError_JSON<AccountSignin_Error>): SubmitError<AccountSignin_Error> => {
-            return SubmitError_decode(json, identity);
-        });
-    }
-}
-
-export const buildAccountClient = (raw: IRawClient): IAccountClient => new AccountClient(raw);
+export const buildAccountClient = (raw: IRawClient): IAccountClient => {
+    return {
+        async signin(request: AccountSignin_Request): Promise<CodableResult<AccountSignin_Response, SubmitError<AccountSignin_Error>>> {
+            const json = await raw.fetch(request, "Account/signin") as CodableResult_JSON<AccountSignin_Response, SubmitError_JSON<AccountSignin_Error>>;
+            return CodableResult_decode(json, identity, (json: SubmitError_JSON<AccountSignin_Error>): SubmitError<AccountSignin_Error> => {
+                return SubmitError_decode(json, identity);
+            });
+        }
+    };
+};
 
 export type AccountSignin = never;
 
