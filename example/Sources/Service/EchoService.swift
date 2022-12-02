@@ -11,6 +11,10 @@ struct EchoService: EchoServiceProtocol {
         )
     }
 
+    func testTypicalEntity(request: APIDefinition.User) async throws -> APIDefinition.User {
+        request
+    }
+
     func testComplexType(request: TestComplexType.Request) async throws -> TestComplexType.Response {
         .init(a: request.a)
     }
