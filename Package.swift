@@ -7,6 +7,7 @@ let package = Package(
     platforms: [.macOS(.v12)],
     products: [
         .executable(name: "codegen", targets: ["Codegen"]),
+        .library(name: "CallableKit", targets: ["CallableKit"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.1.0"),
@@ -18,9 +19,15 @@ let package = Package(
             name: "Codegen",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                "CallableKit"
+            ]
+        ),
+        .target(
+            name: "CallableKit",
+            dependencies: [
                 "CodableToTypeScript",
                 "SwiftTypeReader"
             ]
-        ),
+        )
     ]
 )
