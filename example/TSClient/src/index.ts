@@ -1,6 +1,5 @@
 import { buildAccountClient } from "./Gen/Account.gen.js";
 import { buildEchoClient } from "./Gen/Echo.gen.js";
-import { User_ID } from "./Gen/User.gen.js";
 import { RawAPIClient } from "./raw_client.js";
 
 async function main() {
@@ -14,7 +13,7 @@ async function main() {
   }
 
   {
-    const res = await echoClient.testTypicalEntity({ id: "id" as User_ID, name: "name" });
+    const res = await echoClient.testTypicalEntity({ id: "id", name: "name" });
     console.log(JSON.stringify(res));
   }
   
