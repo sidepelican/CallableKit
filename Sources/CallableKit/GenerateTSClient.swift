@@ -30,7 +30,7 @@ struct GenerateTSClient {
     private let typeMap: TypeMap = {
         var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
         typeMapTable["URL"] = .init(name: "string")
-//        typeMapTable["Date"] = .init(name: "string", decode: "Date_decode", encode: "Date_encode")
+        typeMapTable["Date"] = .init(name: "Date", decode: "Date_decode", encode: "Date_encode")
         return TypeMap(table: typeMapTable) { type in
             let typeRepr = type.toTypeRepr(containsModule: false)
             if let typeRepr = typeRepr as? IdentTypeRepr,
@@ -207,16 +207,7 @@ struct GenerateTSClient {
         try g.run { input, write in
             let generator = CodeGenerator(
                 context: input.context,
-                typeConverterProvider: TypeConverterProvider(typeMap: typeMap) { (generator, stype) in
-                    let repr = stype.toTypeRepr(containsModule: false)
-                    if let ident = repr.asIdent,
-                       let element = ident.elements.last,
-                       element.name == "Date"
-                    {
-                        return DateConverter(generator: generator, swiftType: stype)
-                    }
-                    return nil
-                }
+                typeConverterProvider: TypeConverterProvider(typeMap: typeMap)
             )
 
             // generate all ts codes
@@ -225,7 +216,9 @@ struct GenerateTSClient {
                 source: generateCommon()
             ))
             let decodeLib = generator.generateHelperLibrary()
-            decodeLib.elements += try [DateConverter.encodeDecl(), DateConverter.decodeDecl()].compactMap({ $0 })
+            decodeLib.elements.append(DateConvertDecls.encodeDecl())
+            decodeLib.elements.append(DateConvertDecls.decodeDecl())
+            decodeLib.elements.append(DateConvertDecls.jsonTypeDecl())
             sources.append(.init(
                 file: "decode.gen.ts",
                 source: decodeLib
@@ -272,60 +265,30 @@ struct GenerateTSClient {
     }
 }
 
-fileprivate struct DateConverter: TypeConverter {
-    var generator: CodeGenerator
-    var swiftType: any SType
-
-    func name(for target: GenerationTarget) throws -> String {
-        switch target {
-        case .entity: return "Date"
-        case .json: return "string"
-        }
+fileprivate enum DateConvertDecls {
+    static func jsonTypeDecl() -> TSTypeDecl {
+        TSTypeDecl(modifiers: [.export], name: "Date_JSON", type: TSIdentType("string"))
     }
 
-    func typeDecl(for target: GenerationTarget) throws -> TSTypeDecl? {
-        return nil
-    }
-
-    func hasDecode() throws -> Bool {
-        return true
-    }
-
-    static func decodeName() throws -> String {
-        return "Date_decode"
-    }
-    func decodeName() throws -> String { try Self.decodeName() }
-
-    static func decodeDecl() throws -> TSFunctionDecl? {
-        return TSFunctionDecl(
+    static func decodeDecl() -> TSFunctionDecl {
+        TSFunctionDecl(
             modifiers: [.export],
-            name: try decodeName(),
-            params: [ .init(name: "iso", type: TSIdentType("string"))],
+            name: "Date_decode",
+            params: [ .init(name: "iso", type: TSIdentType("Date_JSON"))],
             body: TSBlockStmt([
                 TSReturnStmt(TSNewExpr(callee: TSIdentType("Date"), args: [TSIdentExpr("iso")]))
             ])
         )
     }
-    func decodeDecl() throws -> TSFunctionDecl? { try Self.decodeDecl() }
 
-    func hasEncode() throws -> Bool {
-        return true
-    }
-
-    static func encodeName() throws -> String {
-        return "Date_encode"
-    }
-    func encodeName() throws -> String { try Self.encodeName() }
-
-    static func encodeDecl() throws -> TSFunctionDecl? {
-        return TSFunctionDecl(
+    static func encodeDecl() -> TSFunctionDecl {
+        TSFunctionDecl(
             modifiers: [.export],
-            name: try encodeName(),
+            name: "Date_encode",
             params: [.init(name: "d", type: TSIdentType("Date"))],
             body: TSBlockStmt([
                 TSReturnStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("d"), name: TSIdentExpr("toISOString")), args: []))
             ])
         )
     }
-    func encodeDecl() throws -> TSFunctionDecl? { try Self.encodeDecl() }
 }
