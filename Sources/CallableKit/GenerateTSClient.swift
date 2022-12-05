@@ -80,7 +80,7 @@ struct GenerateTSClient {
 
                 let reqExpr: any TSExpr
                 if let sReq = f.request?.raw,
-                   try generator.converter(for: sReq).hasJSONType() {
+                   try generator.converter(for: sReq).hasEncode() {
                     let encodeExpr = try generator.converter(for: sReq).callEncode(entity: TSIdentExpr(f.request!.argName))
                     reqExpr = encodeExpr
                 } else {
@@ -100,7 +100,7 @@ struct GenerateTSClient {
 
                 let blockBody: [any ASTNode]
                 if let sRes = f.response?.raw,
-                   try generator.converter(for: sRes).hasJSONType()
+                   try generator.converter(for: sRes).hasDecode()
                 {
                     let jsonTsType = try generator.converter(for: sRes).type(for: .json)
                     let decodeExpr = try generator.converter(for: sRes).callDecode(json: TSIdentExpr("json"))
