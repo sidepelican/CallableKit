@@ -1,4 +1,4 @@
-import { User } from "./User.gen.js";
+import { User, User_JSON, User_decode } from "./User.gen.js";
 import { IRawClient } from "./common.gen.js";
 import {
     Array_decode,
@@ -31,7 +31,8 @@ export const buildEchoClient = (raw: IRawClient): IEchoClient => {
             return Date_decode(json);
         },
         async testTypicalEntity(request: User): Promise<User> {
-            return await raw.fetch(request, "Echo/testTypicalEntity") as User;
+            const json = await raw.fetch(request as User_JSON, "Echo/testTypicalEntity") as User_JSON;
+            return User_decode(json);
         },
         async testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response> {
             const json = await raw.fetch(TestComplexType_Request_encode(request), "Echo/testComplexType") as TestComplexType_Response_JSON;
