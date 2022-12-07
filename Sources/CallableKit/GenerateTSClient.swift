@@ -17,9 +17,9 @@ struct GenerateTSClient {
 
     private let typeMap: TypeMap = {
         var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
-        typeMapTable["URL"] = .init(name: "string")
-        typeMapTable["Date"] = .init(name: "Date", decode: "Date_decode", encode: "Date_encode")
-        return TypeMap(table: typeMapTable) { type in
+        typeMapTable["URL"] = .identity(name: "string")
+        typeMapTable["Date"] = .coding(entityType: "Date", jsonType: "string", decode: "Date_decode", encode: "Date_encode")
+        return TypeMap(table: typeMapTable) { type -> TypeMap.Entry? in
             if let type = type.asNominal,
                let _ = type.nominalTypeDecl.rawValueType()
             {
@@ -31,7 +31,7 @@ struct GenerateTSClient {
                let lastElement = typeRepr.elements.last,
                lastElement.name.hasSuffix("ID")
             {
-                return .init(name: "string")
+                return .identity(name: "string")
             }
             return nil
         }
@@ -212,7 +212,6 @@ struct GenerateTSClient {
             let decodeLib = generator.generateHelperLibrary()
             decodeLib.elements.append(DateConvertDecls.encodeDecl())
             decodeLib.elements.append(DateConvertDecls.decodeDecl())
-            decodeLib.elements.append(DateConvertDecls.jsonTypeDecl())
             sources.append(.init(
                 file: "decode.gen.ts",
                 source: decodeLib
@@ -260,15 +259,11 @@ struct GenerateTSClient {
 }
 
 fileprivate enum DateConvertDecls {
-    static func jsonTypeDecl() -> TSTypeDecl {
-        TSTypeDecl(modifiers: [.export], name: "Date_JSON", type: TSIdentType("string"))
-    }
-
     static func decodeDecl() -> TSFunctionDecl {
         TSFunctionDecl(
             modifiers: [.export],
             name: "Date_decode",
-            params: [ .init(name: "iso", type: TSIdentType("Date_JSON"))],
+            params: [ .init(name: "iso", type: TSIdentType("string"))],
             body: TSBlockStmt([
                 TSReturnStmt(TSNewExpr(callee: TSIdentType("Date"), args: [TSIdentExpr("iso")]))
             ])

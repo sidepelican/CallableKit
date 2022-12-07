@@ -3,7 +3,6 @@ import { IRawClient } from "./common.gen.js";
 import {
     Array_decode,
     Array_encode,
-    Date_JSON,
     Date_decode,
     Date_encode,
     OptionalField_decode,
@@ -27,7 +26,7 @@ export const buildEchoClient = (raw: IRawClient): IEchoClient => {
             return await raw.fetch(request, "Echo/hello") as EchoHelloResponse;
         },
         async tommorow(now: Date): Promise<Date> {
-            const json = await raw.fetch(Date_encode(now), "Echo/tommorow") as Date_JSON;
+            const json = await raw.fetch(Date_encode(now), "Echo/tommorow") as string;
             return Date_decode(json);
         },
         async testTypicalEntity(request: User): Promise<User> {

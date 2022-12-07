@@ -54,8 +54,6 @@ export function Date_encode(d: Date) {
     return d.toISOString();
 }
 
-export function Date_decode(iso: Date_JSON) {
+export function Date_decode(iso: string) {
     return new Date(iso);
 }
-
-export type Date_JSON = string;
