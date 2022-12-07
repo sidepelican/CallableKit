@@ -3,6 +3,8 @@ import { IRawClient } from "./common.gen.js";
 import {
     Array_decode,
     Array_encode,
+    Date_decode,
+    Date_encode,
     OptionalField_decode,
     OptionalField_encode,
     Optional_decode,
@@ -12,8 +14,9 @@ import {
 
 export interface IEchoClient {
     hello(request: EchoHelloRequest): Promise<EchoHelloResponse>;
-    testTypicalEntity(request: User_JSON): Promise<User>;
-    testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response>;
+    tommorow(now: Date): Promise<Date>;
+    testTypicalEntity(request: User): Promise<User>;
+    testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response>;
     emptyRequestAndResponse(): Promise<void>;
 }
 
@@ -22,12 +25,16 @@ export const buildEchoClient = (raw: IRawClient): IEchoClient => {
         async hello(request: EchoHelloRequest): Promise<EchoHelloResponse> {
             return await raw.fetch(request, "Echo/hello") as EchoHelloResponse;
         },
-        async testTypicalEntity(request: User_JSON): Promise<User> {
+        async tommorow(now: Date): Promise<Date> {
+            const json = await raw.fetch(Date_encode(now), "Echo/tommorow") as string;
+            return Date_decode(json);
+        },
+        async testTypicalEntity(request: User): Promise<User> {
             const json = await raw.fetch(request, "Echo/testTypicalEntity") as User_JSON;
             return User_decode(json);
         },
-        async testComplexType(request: TestComplexType_Request_JSON): Promise<TestComplexType_Response> {
-            const json = await raw.fetch(request, "Echo/testComplexType") as TestComplexType_Response_JSON;
+        async testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response> {
+            const json = await raw.fetch(TestComplexType_Request_encode(request), "Echo/testComplexType") as TestComplexType_Response_JSON;
             return TestComplexType_Response_decode(json);
         },
         async emptyRequestAndResponse(): Promise<void> {

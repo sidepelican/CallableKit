@@ -17,9 +17,9 @@ struct GenerateTSClient {
 
     private let typeMap: TypeMap = {
         var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
-        typeMapTable["URL"] = .init(name: "string")
-        typeMapTable["Date"] = .init(name: "string")
-        return TypeMap(table: typeMapTable) { type in
+        typeMapTable["URL"] = .identity(name: "string")
+        typeMapTable["Date"] = .coding(entityType: "Date", jsonType: "string", decode: "Date_decode", encode: "Date_encode")
+        return TypeMap(table: typeMapTable) { type -> TypeMap.Entry? in
             if let type = type.asNominal,
                let _ = type.nominalTypeDecl.rawValueType()
             {
@@ -31,7 +31,7 @@ struct GenerateTSClient {
                let lastElement = typeRepr.elements.last,
                lastElement.name.hasSuffix("ID")
             {
-                return .init(name: "string")
+                return .identity(name: "string")
             }
             return nil
         }
@@ -66,7 +66,7 @@ struct GenerateTSClient {
                     let method = TSMethodDecl(
                         name: f.name,
                         params: try f.request.map {
-                            [.init(name: $0.argName, type: try generator.converter(for: $0.raw).type(for: .json))]
+                            [.init(name: $0.argName, type: try generator.converter(for: $0.raw).type(for: .entity))]
                         } ?? [],
                         result: TSIdentType.promise(res)
                     )
@@ -78,20 +78,29 @@ struct GenerateTSClient {
             let functionsDecls: [TSMethodDecl] = try stype.functions.map { f in
                 let res: TSType = try f.response.map { try generator.converter(for: $0.raw).type(for: .entity) } ?? TSIdentType.void
 
+                let reqExpr: any TSExpr
+                if let sReq = f.request?.raw,
+                   try generator.converter(for: sReq).hasEncode() {
+                    let encodeExpr = try generator.converter(for: sReq).callEncode(entity: TSIdentExpr(f.request!.argName))
+                    reqExpr = encodeExpr
+                } else {
+                    reqExpr = f.request.map { TSIdentExpr($0.argName) } ?? TSObjectExpr([])
+                }
+
                 let fetchExpr: any TSExpr = TSCallExpr(
                     callee: TSMemberExpr(
                         base: TSIdentExpr("raw"),
                         name: TSIdentExpr("fetch")
                     ),
                     args: [
-                        f.request.map { TSIdentExpr($0.argName) } ?? TSObjectExpr([]),
+                        reqExpr,
                         TSStringLiteralExpr("\(stype.serviceName)/\(f.name)")
                     ]
                 )
 
                 let blockBody: [any ASTNode]
                 if let sRes = f.response?.raw,
-                   try generator.converter(for: sRes).hasJSONType()
+                   try generator.converter(for: sRes).hasDecode()
                 {
                     let jsonTsType = try generator.converter(for: sRes).type(for: .json)
                     let decodeExpr = try generator.converter(for: sRes).callDecode(json: TSIdentExpr("json"))
@@ -121,7 +130,7 @@ struct GenerateTSClient {
                     params: try f.request.map {
                         [.init(
                             name: $0.argName,
-                            type: try generator.converter(for: $0.raw).type(for: .json)
+                            type: try generator.converter(for: $0.raw).type(for: .entity)
                         )]
                     } ?? [],
                     result: TSIdentType.promise(res),
@@ -200,9 +209,12 @@ struct GenerateTSClient {
                 file: "common.gen.ts",
                 source: generateCommon()
             ))
+            let decodeLib = generator.generateHelperLibrary()
+            decodeLib.elements.append(DateConvertDecls.encodeDecl())
+            decodeLib.elements.append(DateConvertDecls.decodeDecl())
             sources.append(.init(
                 file: "decode.gen.ts",
-                source: generator.generateHelperLibrary()
+                source: decodeLib
             ))
             for inputFile in input.files {
                 guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
@@ -243,5 +255,29 @@ struct GenerateTSClient {
                 ))
             }
         }
+    }
+}
+
+fileprivate enum DateConvertDecls {
+    static func decodeDecl() -> TSFunctionDecl {
+        TSFunctionDecl(
+            modifiers: [.export],
+            name: "Date_decode",
+            params: [ .init(name: "iso", type: TSIdentType("string"))],
+            body: TSBlockStmt([
+                TSReturnStmt(TSNewExpr(callee: TSIdentType("Date"), args: [TSIdentExpr("iso")]))
+            ])
+        )
+    }
+
+    static func encodeDecl() -> TSFunctionDecl {
+        TSFunctionDecl(
+            modifiers: [.export],
+            name: "Date_encode",
+            params: [.init(name: "d", type: TSIdentType("Date"))],
+            body: TSBlockStmt([
+                TSReturnStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("d"), name: TSIdentExpr("toISOString")), args: []))
+            ])
+        )
     }
 }

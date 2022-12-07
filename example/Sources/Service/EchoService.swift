@@ -1,4 +1,5 @@
 import APIDefinition
+import Foundation
 
 public func makeEchoService() -> some EchoServiceProtocol {
     EchoService()
@@ -9,6 +10,10 @@ struct EchoService: EchoServiceProtocol {
         .init(
             message: "Hello, \(request.name)!"
         )
+    }
+
+    func tommorow(now: Date) async throws -> Date {
+        now.addingTimeInterval(60 * 60 * 24 * 1)
     }
 
     func testTypicalEntity(request: User) async throws -> User {

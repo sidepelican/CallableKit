@@ -1,5 +1,6 @@
 import { buildAccountClient } from "./Gen/Account.gen.js";
 import { buildEchoClient } from "./Gen/Echo.gen.js";
+import { User_ID } from "./Gen/User.gen.js";
 import { RawAPIClient } from "./raw_client.js";
 
 async function main() {
@@ -13,7 +14,13 @@ async function main() {
   }
 
   {
-    const res = await echoClient.testTypicalEntity({ id: "id", name: "name" });
+    const res = await echoClient.tommorow(new Date());
+    console.log(res);
+  }
+
+  {
+    const id = "id" as User_ID
+    const res = await echoClient.testTypicalEntity({ id, name: "name" });
     console.log(JSON.stringify(res));
   }
   
@@ -21,9 +28,9 @@ async function main() {
     const res = await echoClient.testComplexType({
       a: {
         x: [
-          { k: { _0: { x: { x: "hello" } } } },
-          { i: { _0: 100 } },
-          { n: {} },
+          { kind: "k", k: { _0: { x: { x: "hello" } } } },
+          { kind: "i", i: { _0: 100 } },
+          { kind: "n", n: {} },
           null
         ]
       }

@@ -10,6 +10,9 @@ public struct EchoServiceStub<C: StubClientProtocol>: EchoServiceProtocol, Senda
     public func hello(request: EchoHelloRequest) async throws -> EchoHelloResponse {
         return try await client.send(path: "Echo/hello", request: request)
     }
+    public func tommorow(now: Date) async throws -> Date {
+        return try await client.send(path: "Echo/tommorow", request: now)
+    }
     public func testTypicalEntity(request: User) async throws -> User {
         return try await client.send(path: "Echo/testTypicalEntity", request: request)
     }

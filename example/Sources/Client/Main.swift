@@ -10,6 +10,11 @@ import Foundation
         }
 
         do {
+            let res = try await client.echo.tommorow(now: Date())
+            print(res)
+        }
+
+        do {
             let res = try await client.echo.testTypicalEntity(request: .init(id: .init(rawValue: "id"), name: "name"))
             dump(res)
         }
