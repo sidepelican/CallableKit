@@ -2,13 +2,10 @@ import { User, User_JSON, User_decode } from "./User.gen.js";
 import { IRawClient } from "./common.gen.js";
 import {
     Array_decode,
-    Array_encode,
     Date_decode,
     Date_encode,
     OptionalField_decode,
-    OptionalField_encode,
     Optional_decode,
-    Optional_encode,
     identity
 } from "./decode.gen.js";
 
@@ -34,7 +31,7 @@ export const buildEchoClient = (raw: IRawClient): IEchoClient => {
             return User_decode(json);
         },
         async testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response> {
-            const json = await raw.fetch(TestComplexType_Request_encode(request), "Echo/testComplexType") as TestComplexType_Response_JSON;
+            const json = await raw.fetch(request, "Echo/testComplexType") as TestComplexType_Response_JSON;
             return TestComplexType_Response_decode(json);
         },
         async emptyRequestAndResponse(): Promise<void> {
@@ -185,20 +182,6 @@ export function TestComplexType_Request_decode(json: TestComplexType_Request_JSO
     };
 }
 
-export function TestComplexType_Request_encode(entity: TestComplexType_Request): TestComplexType_Request_JSON {
-    return {
-        a: OptionalField_encode(entity.a, (entity: TestComplexType_K<(TestComplexType_E<TestComplexType_L> | null)[]>): TestComplexType_K_JSON<(TestComplexType_E_JSON<TestComplexType_L> | null)[]> => {
-            return TestComplexType_K_encode(entity, (entity: (TestComplexType_E<TestComplexType_L> | null)[]): (TestComplexType_E_JSON<TestComplexType_L> | null)[] => {
-                return Array_encode(entity, (entity: TestComplexType_E<TestComplexType_L> | null): TestComplexType_E_JSON<TestComplexType_L> | null => {
-                    return Optional_encode(entity, (entity: TestComplexType_E<TestComplexType_L>): TestComplexType_E_JSON<TestComplexType_L> => {
-                        return TestComplexType_E_encode(entity, identity);
-                    });
-                });
-            });
-        })
-    };
-}
-
 export type TestComplexType_Response = {
     a?: TestComplexType_K<(TestComplexType_E<TestComplexType_L> | null)[]>;
 };
@@ -214,20 +197,6 @@ export function TestComplexType_Response_decode(json: TestComplexType_Response_J
                 return Array_decode(json, (json: TestComplexType_E_JSON<TestComplexType_L> | null): TestComplexType_E<TestComplexType_L> | null => {
                     return Optional_decode(json, (json: TestComplexType_E_JSON<TestComplexType_L>): TestComplexType_E<TestComplexType_L> => {
                         return TestComplexType_E_decode(json, identity);
-                    });
-                });
-            });
-        })
-    };
-}
-
-export function TestComplexType_Response_encode(entity: TestComplexType_Response): TestComplexType_Response_JSON {
-    return {
-        a: OptionalField_encode(entity.a, (entity: TestComplexType_K<(TestComplexType_E<TestComplexType_L> | null)[]>): TestComplexType_K_JSON<(TestComplexType_E_JSON<TestComplexType_L> | null)[]> => {
-            return TestComplexType_K_encode(entity, (entity: (TestComplexType_E<TestComplexType_L> | null)[]): (TestComplexType_E_JSON<TestComplexType_L> | null)[] => {
-                return Array_encode(entity, (entity: TestComplexType_E<TestComplexType_L> | null): TestComplexType_E_JSON<TestComplexType_L> | null => {
-                    return Optional_encode(entity, (entity: TestComplexType_E<TestComplexType_L>): TestComplexType_E_JSON<TestComplexType_L> => {
-                        return TestComplexType_E_encode(entity, identity);
                     });
                 });
             });
