@@ -39,9 +39,9 @@ struct GenerateTSClient {
 
     private func generateCommon() -> TSSourceFile {
         return TSSourceFile([
-            TSInterfaceDecl(modifiers: [.export], name: "IRawClient", body: TSBlockStmt([
+            TSInterfaceDecl(modifiers: [.export], name: "IStubClient", body: TSBlockStmt([
                 TSMethodDecl(
-                    name: "fetch", params: [
+                    name: "send", params: [
                         .init(name: "request", type: TSIdentType.unknown),
                         .init(name: "servicePath", type: TSIdentType.string)
                     ],
@@ -89,8 +89,8 @@ struct GenerateTSClient {
 
                 let fetchExpr: any TSExpr = TSCallExpr(
                     callee: TSMemberExpr(
-                        base: TSIdentExpr("raw"),
-                        name: TSIdentExpr("fetch")
+                        base: TSIdentExpr("stub"),
+                        name: TSIdentExpr("send")
                     ),
                     args: [
                         reqExpr,
@@ -140,9 +140,9 @@ struct GenerateTSClient {
 
             codes.append(TSVarDecl(
                 modifiers: [.export],
-                kind: .const, name: "build\(stype.serviceName)Client",
+                kind: .const, name: "bind\(stype.serviceName)",
                 initializer: TSClosureExpr(
-                    params: [.init(name: "raw", type: TSIdentType("IRawClient"))],
+                    params: [.init(name: "stub", type: TSIdentType("IStubClient"))],
                     result: TSIdentType(clientInterface.name),
                     body: TSBlockStmt([
                         TSReturnStmt(TSObjectExpr(functionsDecls.map(TSObjectExpr.Field.method)))

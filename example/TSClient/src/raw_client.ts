@@ -1,15 +1,13 @@
+import { IStubClient } from "./Gen/common.gen";
 
-import fetch from "node-fetch";
-import { IRawClient } from "./Gen/common.gen";
-
-export class RawAPIClient implements IRawClient {
+export class RawAPIClient implements IStubClient {
   baseURL: string
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
   }
 
-  async fetch(request: unknown, servicePath: string): Promise<unknown> {
+  async send(request: unknown, servicePath: string): Promise<unknown> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -36,3 +34,43 @@ export class RawAPIClient implements IRawClient {
   }
 }
 
+export type StubClientOptions = {
+  headers?: () => Record<string, string>;
+}
+
+export class FetchHTTPStubResponseError extends Error {
+  readonly path: string;
+  readonly response: Response;
+  constructor(
+    path: string,
+    response: Response
+  ) {
+    super(`ResponseError. path=${path}, status=${response.status}`);
+    this.path = path;
+    this.response = response;
+  }
+}
+
+export const createStubClient = (baseURL: string, options?: StubClientOptions): IStubClient => {
+  return {
+    async send(request, servicePath) {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (options?.headers) {
+        Object.assign(headers, options.headers());
+      }
+    
+      const res = await fetch(new URL(servicePath, baseURL).toString(), {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(request),
+      });
+    
+      if (!res.ok) {
+        throw new FetchHTTPStubResponseError(servicePath, res);
+      }
+      return await res.json();
+    },
+  }
+}
