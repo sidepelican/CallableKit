@@ -186,16 +186,14 @@ import Vapor
         g.isOutputFileName = { $0.hasSuffix(".gen.swift") }
 
         try g.run { input, write in
-            let common = Generator.OutputFile(
+            try write(file: .init(
                 name: "VaporToServiceBridgeProtocol.gen.swift",
                 content: generateVaporToServiceBridgeProtocol()
-            )
-            try write(file: common)
-            let common2 = Generator.OutputFile(
+            ))
+            try write(file: .init(
                 name: "VaporJSONServiceBridge.gen.swift",
                 content: generateVaporJSONServiceBridge()
-            )
-            try write(file: common2)
+            ))
 
             for inputFile in input.files {
                 guard let generated = try processFile(file: inputFile) else { continue }

@@ -1,8 +1,23 @@
 import Foundation
 
+struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
+    var errorMessage: String
+
+    var description: String { errorMessage }
+    var errorDescription: String? { description }
+}
+
 @main struct Main {
     static func main() async throws {
-        let client = RawStubClient(baseURL: URL(string: "http://127.0.0.1:8080")!)
+        let client: some StubClientProtocol = FoundationHTTPStubClient(
+            baseURL: URL(string: "http://127.0.0.1:8080")!,
+            onWillSendRequest: { request in
+                request.addValue("Bearer xxxxxxxxxxxx", forHTTPHeaderField: "Authorization")
+            },
+            mapResponseError: { error in
+                throw try JSONDecoder().decode(ErrorFrame.self, from: error.body)
+            }
+        )
 
         do {
             let res = try await client.echo.hello(request: .init(name: "Swift"))
