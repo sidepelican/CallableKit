@@ -4,7 +4,7 @@ import Vapor
 struct EchoServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: EchoServiceProtocol>: RouteCollection {
     var bridge: Bridge
     var serviceBuilder: @Sendable (Request) async throws -> Service
-    init(bridge: Bridge, builder: @Sendable @escaping (Request) async throws -> Service) {
+    init(bridge: Bridge = .default, builder: @Sendable @escaping (Request) async throws -> Service) {
         self.bridge = bridge
         self.serviceBuilder = builder
     }

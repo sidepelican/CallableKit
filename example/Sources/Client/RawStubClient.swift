@@ -73,29 +73,13 @@ final class RawStubClient: StubClientProtocol {
 
 private func makeDecoder() -> JSONDecoder {
     let decoder = JSONDecoder()
-    decoder.dateDecodingStrategy = .custom { decoder in
-        let container = try decoder.singleValueContainer()
-        let string = try container.decode(String.self)
-
-        let f1 = ISO8601DateFormatter()
-        f1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let f2 = ISO8601DateFormatter()
-        f2.formatOptions = .withInternetDateTime
-
-        for formatter in [f1, f2] {
-            if let date = formatter.date(from: string) {
-                return date
-            }
-        }
-
-        throw DecodingError.dataCorruptedError(in: container, debugDescription: "vaild date formatter not found.")
-    }
+    decoder.dateDecodingStrategy = .millisecondsSince1970
     return decoder
 }
 
 private func makeEncoder() -> JSONEncoder {
     let encoder = JSONEncoder()
-    encoder.dateEncodingStrategy = .iso8601
+    encoder.dateEncodingStrategy = .millisecondsSince1970
     return encoder
 }
 

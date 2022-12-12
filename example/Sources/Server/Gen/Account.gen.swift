@@ -4,7 +4,7 @@ import Vapor
 struct AccountServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: AccountServiceProtocol>: RouteCollection {
     var bridge: Bridge
     var serviceBuilder: @Sendable (Request) async throws -> Service
-    init(bridge: Bridge, builder: @Sendable @escaping (Request) async throws -> Service) {
+    init(bridge: Bridge = .default, builder: @Sendable @escaping (Request) async throws -> Service) {
         self.bridge = bridge
         self.serviceBuilder = builder
     }

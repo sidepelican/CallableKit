@@ -18,7 +18,7 @@ struct GenerateTSClient {
     private let typeMap: TypeMap = {
         var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
         typeMapTable["URL"] = .identity(name: "string")
-        typeMapTable["Date"] = .coding(entityType: "Date", jsonType: "string", decode: "Date_decode", encode: "Date_encode")
+        typeMapTable["Date"] = .coding(entityType: "Date", jsonType: "number", decode: "Date_decode", encode: "Date_encode")
         return TypeMap(table: typeMapTable) { type -> TypeMap.Entry? in
             if let type = type.asNominal,
                let _ = type.nominalTypeDecl.rawValueType()
@@ -263,9 +263,9 @@ fileprivate enum DateConvertDecls {
         TSFunctionDecl(
             modifiers: [.export],
             name: "Date_decode",
-            params: [ .init(name: "iso", type: TSIdentType("string"))],
+            params: [ .init(name: "unixMilli", type: TSIdentType("number"))],
             body: TSBlockStmt([
-                TSReturnStmt(TSNewExpr(callee: TSIdentType("Date"), args: [TSIdentExpr("iso")]))
+                TSReturnStmt(TSNewExpr(callee: TSIdentType("Date"), args: [TSIdentExpr("unixMilli")]))
             ])
         )
     }
@@ -276,7 +276,7 @@ fileprivate enum DateConvertDecls {
             name: "Date_encode",
             params: [.init(name: "d", type: TSIdentType("Date"))],
             body: TSBlockStmt([
-                TSReturnStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("d"), name: TSIdentExpr("toISOString")), args: []))
+                TSReturnStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("d"), name: TSIdentExpr("getTime")), args: []))
             ])
         )
     }

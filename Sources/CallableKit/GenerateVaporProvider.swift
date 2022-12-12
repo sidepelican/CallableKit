@@ -7,7 +7,7 @@ struct GenerateVaporProvider {
     var dstDirectory: URL
     var dependencies: [URL]
 
-    private func generateCommon() -> String {
+    private func generateVaporToServiceBridgeProtocol() -> String {
         """
 import Vapor
 
@@ -15,25 +15,25 @@ protocol VaporToServiceBridgeProtocol {
     func makeHandler<Service, Req, Res>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Req: Decodable & Sendable, Res: Encodable & Sendable
 
     func makeHandler<Service, Res>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Res
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Res: Encodable & Sendable
 
     func makeHandler<Service, Req>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Req: Decodable & Sendable
 
     func makeHandler<Service>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Void
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
 }
 
 private struct _Empty: Codable, Sendable {}
@@ -42,7 +42,7 @@ extension VaporToServiceBridgeProtocol {
     func makeHandler<Service, Res>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Res
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Res: Encodable & Sendable
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
@@ -57,7 +57,7 @@ extension VaporToServiceBridgeProtocol {
     func makeHandler<Service, Req>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Req: Decodable & Sendable
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
@@ -73,7 +73,7 @@ extension VaporToServiceBridgeProtocol {
     func makeHandler<Service>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Void
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
             { (service: Service) in
@@ -89,6 +89,65 @@ extension VaporToServiceBridgeProtocol {
 """
     }
 
+    private func generateVaporJSONServiceBridge() -> String {
+"""
+import Foundation
+import Vapor
+
+extension VaporToServiceBridgeProtocol where Self == VaporJSONServiceBridge {
+    static var `default`: VaporJSONServiceBridge { VaporJSONServiceBridge() }
+}
+
+struct VaporJSONServiceBridge: VaporToServiceBridgeProtocol {
+    func makeHandler<Service, Req, Res>(
+        _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
+        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
+    ) -> (Request) async throws -> Response
+    where Req: Decodable & Sendable, Res: Encodable & Sendable
+    {
+        VaporJSONServiceHandler(serviceBuilder: serviceBuilder, methodSelector: methodSelector)
+            .callAsFunction(request:)
+    }
+}
+
+private struct VaporJSONServiceHandler<Service, Req, Res> where Req: Decodable & Sendable, Res: Encodable & Sendable {
+    var serviceBuilder: @Sendable (Request) async throws -> Service
+    var methodSelector: (Service.Type) -> (Service) -> (Req) async throws -> Res
+
+    func callAsFunction(request: Request) async throws -> Response {
+        let service = try await serviceBuilder(request)
+        guard let body = request.body.data else {
+            throw Abort(.badRequest, reason: "no body")
+        }
+        let rpcRequest = try makeDecoder().decode(Req.self, from: body)
+        let rpcResponse = try await methodSelector(Service.self)(service)(rpcRequest)
+        return try makeResponse(status: .ok, body: rpcResponse)
+    }
+
+    private func makeResponse<R: Encodable>(status: HTTPResponseStatus, body: R) throws -> Response {
+        let body = try makeEncoder().encode(body)
+        var headers = HTTPHeaders()
+        headers.contentType = .json
+        headers.cacheControl = .init(noStore: true)
+        return Response(status: status, headers: headers, body: .init(data: body))
+    }
+}
+
+private func makeDecoder() -> JSONDecoder {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .millisecondsSince1970
+    return decoder
+}
+
+private func makeEncoder() -> JSONEncoder {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .millisecondsSince1970
+    return encoder
+}
+
+"""
+    }
+
     private func processFile(file: Generator.InputFile) throws -> String? {
         var providers: [String] = []
         for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
@@ -96,7 +155,7 @@ extension VaporToServiceBridgeProtocol {
 struct \(stype.serviceName)ServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: \(stype.name)>: RouteCollection {
     var bridge: Bridge
     var serviceBuilder: @Sendable (Request) async throws -> Service
-    init(bridge: Bridge, builder: @Sendable @escaping (Request) async throws -> Service) {
+    init(bridge: Bridge = .default, builder: @Sendable @escaping (Request) async throws -> Service) {
         self.bridge = bridge
         self.serviceBuilder = builder
     }
@@ -128,10 +187,15 @@ import Vapor
 
         try g.run { input, write in
             let common = Generator.OutputFile(
-                name: "common.gen.swift",
-                content: generateCommon()
+                name: "VaporToServiceBridgeProtocol.gen.swift",
+                content: generateVaporToServiceBridgeProtocol()
             )
             try write(file: common)
+            let common2 = Generator.OutputFile(
+                name: "VaporJSONServiceBridge.gen.swift",
+                content: generateVaporJSONServiceBridge()
+            )
+            try write(file: common2)
 
             for inputFile in input.files {
                 guard let generated = try processFile(file: inputFile) else { continue }

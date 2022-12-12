@@ -23,7 +23,7 @@ export const buildEchoClient = (raw: IRawClient): IEchoClient => {
             return await raw.fetch(request, "Echo/hello") as EchoHelloResponse;
         },
         async tommorow(now: Date): Promise<Date> {
-            const json = await raw.fetch(Date_encode(now), "Echo/tommorow") as string;
+            const json = await raw.fetch(Date_encode(now), "Echo/tommorow") as number;
             return Date_decode(json);
         },
         async testTypicalEntity(request: User): Promise<User> {
