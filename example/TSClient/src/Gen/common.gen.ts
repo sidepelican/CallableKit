@@ -2,8 +2,11 @@ export interface IStubClient {
     send(request: unknown, servicePath: string): Promise<unknown>;
 }
 
+export type Headers = Record<string, string>;
+
 export type StubClientOptions = {
-    headers?: () => Record<string, string>;
+    headers?: () => Headers | Promise<Headers>;
+    mapResponseError?: (e: FetchHTTPStubResponseError) => Error;
 };
 
 export class FetchHTTPStubResponseError extends Error {
@@ -20,19 +23,25 @@ export class FetchHTTPStubResponseError extends Error {
 export const createStubClient = (baseURL: string, options?: StubClientOptions): IStubClient => {
     return {
         async send(request, servicePath) {
-            const headers: Record<string, string> = {
-                "Content-Type": "application/json"
-            };
+            let optionHeaders: Headers = {};
             if (options?.headers) {
-                Object.assign(headers, options.headers());
+                optionHeaders = await options.headers();
             }
-            const res = await fetch(new URL(servicePath, baseURL), {
+            const res = await fetch(new URL(servicePath, baseURL).toString(), {
                 method: "POST",
-                headers,
+                headers: {
+                    "Content-Type": "application/json",
+                    ...optionHeaders
+                },
                 body: JSON.stringify(request)
             });
             if (! res.ok) {
-                throw new FetchHTTPStubResponseError(servicePath, res);
+                const e = new FetchHTTPStubResponseError(servicePath, res);
+                if (options?.mapResponseError) {
+                    throw options.mapResponseError(e);
+                } else {
+                    throw e;
+                }
             }
             return await res.json();
         }
