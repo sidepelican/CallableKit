@@ -51,9 +51,9 @@ export function Dictionary_encode<T, T_JSON>(entity: { [key: string]: T; }, T_en
 }
 
 export function Date_encode(d: Date) {
-    return d.toISOString();
+    return d.getTime();
 }
 
-export function Date_decode(iso: string) {
-    return new Date(iso);
+export function Date_decode(unixMilli: number) {
+    return new Date(unixMilli);
 }

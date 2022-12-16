@@ -6,13 +6,27 @@ defer { app.shutdown() }
 
 app.logger.logLevel = .error
 
-let echoProvider = EchoServiceProvider(bridge: .default) { req in
-    makeEchoService()
+let myErrorMiddleware = ErrorMiddleware { _, error in
+    struct ErrorFrame: Encodable {
+        var errorMessage: String
+    }
+    let errorFrame = ErrorFrame(errorMessage: "\(error)")
+    var headers = HTTPHeaders()
+    headers.contentType = .json
+    headers.cacheControl = .init(noStore: true)
+    let body = (try? JSONEncoder().encode(errorFrame)) ?? .init()
+    return Response(status: .internalServerError, headers: headers, body: .init(data: body))
 }
-let accountProvider = AccountServiceProvider(bridge: .default) { req in
-    makeAccountService()
+
+try app.group(myErrorMiddleware) { routes in
+    let echoProvider = EchoServiceProvider { req in
+        makeEchoService()
+    }
+    let accountProvider = AccountServiceProvider { req in
+        makeAccountService()
+    }
+    try routes.register(collection: echoProvider)
+    try routes.register(collection: accountProvider)
 }
-try app.register(collection: echoProvider)
-try app.register(collection: accountProvider)
 
 try app.run()

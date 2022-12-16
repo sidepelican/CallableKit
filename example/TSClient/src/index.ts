@@ -1,12 +1,12 @@
-import { buildAccountClient } from "./Gen/Account.gen.js";
-import { buildEchoClient } from "./Gen/Echo.gen.js";
+import { bindAccount } from "./Gen/Account.gen.js";
+import { bindEcho } from "./Gen/Echo.gen.js";
 import { User_ID } from "./Gen/User.gen.js";
-import { RawAPIClient } from "./raw_client.js";
+import { createStubClient } from "./Gen/common.gen.js";
 
 async function main() {
-  const rawClient = new RawAPIClient("http://127.0.0.1:8080");
-  const echoClient = buildEchoClient(rawClient);
-  const accountClient = buildAccountClient(rawClient);
+  const stub = createStubClient("http://127.0.0.1:8080");
+  const echoClient = bindEcho(stub);
+  const accountClient = bindAccount(stub);
 
   {
     const res = await echoClient.hello({ name: "TypeScript" });
@@ -23,7 +23,7 @@ async function main() {
     const res = await echoClient.testTypicalEntity({ id, name: "name" });
     console.log(JSON.stringify(res));
   }
-  
+
   {
     const res = await echoClient.testComplexType({
       a: {

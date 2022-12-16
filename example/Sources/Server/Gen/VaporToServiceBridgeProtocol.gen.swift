@@ -4,25 +4,25 @@ protocol VaporToServiceBridgeProtocol {
     func makeHandler<Service, Req, Res>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Req: Decodable & Sendable, Res: Encodable & Sendable
 
     func makeHandler<Service, Res>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Res
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Res: Encodable & Sendable
 
     func makeHandler<Service, Req>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Req: Decodable & Sendable
 
     func makeHandler<Service>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Void
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
 }
 
 private struct _Empty: Codable, Sendable {}
@@ -31,7 +31,7 @@ extension VaporToServiceBridgeProtocol {
     func makeHandler<Service, Res>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Res
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Res: Encodable & Sendable
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
@@ -46,7 +46,7 @@ extension VaporToServiceBridgeProtocol {
     func makeHandler<Service, Req>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     where Req: Decodable & Sendable
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
@@ -62,7 +62,7 @@ extension VaporToServiceBridgeProtocol {
     func makeHandler<Service>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
         _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Void
-    ) -> (Request) async -> Response
+    ) -> (Request) async throws -> Response
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
             { (service: Service) in

@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/CodableToTypeScript",
       "state" : {
-        "revision" : "17206ceab6c2371e9c46fb2046b633709953698a",
-        "version" : "2.4.0"
+        "revision" : "134c7dc45e372d88b07db300ec37f4d71c0b9bea",
+        "version" : "2.4.1"
       }
     },
     {
@@ -203,8 +203,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/TypeScriptAST",
       "state" : {
-        "revision" : "509c3a20d5f8fe7584d4e9d67acc80690ff2fba0",
-        "version" : "1.3.0"
+        "revision" : "0dbbd10881e36afe5ca731b3e83f0c31c7f7941e",
+        "version" : "1.4.1"
       }
     },
     {
