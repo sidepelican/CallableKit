@@ -1,7 +1,7 @@
 import { bindAccount } from "./Gen/Account.gen.js";
 import { bindEcho } from "./Gen/Echo.gen.js";
 import { User_ID } from "./Gen/User.gen.js";
-import { createStubClient } from "./raw_client.js";
+import { createStubClient } from "./Gen/common.gen.js";
 
 async function main() {
   const stub = createStubClient("http://127.0.0.1:8080");
@@ -23,7 +23,7 @@ async function main() {
     const res = await echoClient.testTypicalEntity({ id, name: "name" });
     console.log(JSON.stringify(res));
   }
-  
+
   {
     const res = await echoClient.testComplexType({
       a: {
