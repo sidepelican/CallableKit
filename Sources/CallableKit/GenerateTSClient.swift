@@ -61,9 +61,9 @@ struct GenerateTSClient {
                 TSFieldDecl(modifiers: [.readonly], name: "path", type: string),
                 TSFieldDecl(modifiers: [.readonly], name: "response", type: TSIdentType("Response")),
                 TSMethodDecl(name: "constructor", params: [.init(name: "path", type: string), .init(name: "response", type: TSIdentType("Response"))], body: TSBlockStmt([
-                    TSCallExpr(callee: TSIdentExpr("super"), args: [TSTemplateLiteralExpr("ResponseError. path=\(ident: "path"), status=\(TSMemberExpr(base: TSIdentExpr("response"), name: TSIdentExpr("status")))")]),
-                    TSAssignExpr(TSMemberExpr(base: TSIdentExpr.this, name: TSIdentExpr("path")), TSIdentExpr("path")),
-                    TSAssignExpr(TSMemberExpr(base: TSIdentExpr.this, name: TSIdentExpr("response")), TSIdentExpr("response")),
+                    TSCallExpr(callee: TSIdentExpr("super"), args: [TSTemplateLiteralExpr("ResponseError. path=\(ident: "path"), status=\(TSMemberExpr(base: TSIdentExpr("response"), name: "status"))")]),
+                    TSAssignExpr(TSMemberExpr(base: TSIdentExpr.this, name: "path"), TSIdentExpr("path")),
+                    TSAssignExpr(TSMemberExpr(base: TSIdentExpr.this, name: "response"), TSIdentExpr("response")),
                 ])),
             ])),
             TSVarDecl(
@@ -80,10 +80,10 @@ struct GenerateTSClient {
                         TSReturnStmt(TSObjectExpr([
                             .method(TSMethodDecl(modifiers: [.async], name: "send", params: [.init(name: "request"), .init(name: "servicePath")], body: TSBlockStmt([
                                 TSVarDecl(kind: .let, name: "optionHeaders", type: TSIdentType("Headers"), initializer: TSObjectExpr([])),
-                                TSIfStmt(condition: TSMemberExpr(base: TSIdentExpr("options"), isOptional: true, name: TSIdentExpr("headers")), then: TSBlockStmt([
+                                TSIfStmt(condition: TSMemberExpr(base: TSIdentExpr("options"), isOptional: true, name: "headers"), then: TSBlockStmt([
                                     TSAssignExpr(
                                         TSIdentExpr("optionHeaders"),
-                                        TSAwaitExpr(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("options"), name: TSIdentExpr("headers")), args: []))
+                                        TSAwaitExpr(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("options"), name: "headers"), args: []))
                                     ),
                                 ])),
 
@@ -93,33 +93,33 @@ struct GenerateTSClient {
                                             TSIdentExpr("servicePath"),
                                             TSIdentExpr("baseURL"),
                                         ]),
-                                        name: TSIdentExpr("toString")
+                                        name: "toString"
                                     ), args: []),
                                     TSObjectExpr([
                                         .named(name: "method", value: TSStringLiteralExpr("POST")),
                                         .named(name: "headers", value: TSObjectExpr([
                                             .named(name: "Content-Type", value: TSStringLiteralExpr("application/json")),
-                                            .shorthandPropertyNames(name: "...optionHeaders"), // TODO:
+                                            .destructuring(value: TSIdentExpr("optionHeaders")),
                                         ])),
-                                        .named(name: "body", value: TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("JSON"), name: TSIdentExpr("stringify")), args: [TSIdentExpr("request")])),
+                                        .named(name: "body", value: TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("JSON"), name: "stringify"), args: [TSIdentExpr("request")])),
                                     ]),
                                 ]))),
-                                TSIfStmt(condition: TSPrefixOperatorExpr("!", TSMemberExpr(base: TSIdentExpr("res"), name: TSIdentExpr("ok"))), then: TSBlockStmt([
+                                TSIfStmt(condition: TSPrefixOperatorExpr("!", TSMemberExpr(base: TSIdentExpr("res"), name: "ok")), then: TSBlockStmt([
                                     TSVarDecl(kind: .const, name: "e", initializer: TSNewExpr(callee: TSIdentType("FetchHTTPStubResponseError"), args: [
                                         TSIdentExpr("servicePath"),
                                         TSIdentExpr("res"),
                                     ])),
                                     TSIfStmt(
-                                        condition: TSMemberExpr(base: TSIdentExpr("options"), isOptional: true, name: TSIdentExpr("mapResponseError")),
+                                        condition: TSMemberExpr(base: TSIdentExpr("options"), isOptional: true, name: "mapResponseError"),
                                         then: TSBlockStmt([
-                                            TSThrowStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("options"), name: TSIdentExpr("mapResponseError")), args: [TSIdentExpr("e")])),
+                                            TSThrowStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("options"), name: "mapResponseError"), args: [TSIdentExpr("e")])),
                                         ]),
                                         else: TSBlockStmt([
                                             TSThrowStmt(TSIdentExpr("e")),
                                         ])
                                     ),
                                 ])),
-                                TSReturnStmt(TSAwaitExpr(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("res"), name: TSIdentExpr("json")), args: []))),
+                                TSReturnStmt(TSAwaitExpr(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("res"), name: "json"), args: []))),
                             ])))
                         ]))
                     ])
@@ -167,7 +167,7 @@ struct GenerateTSClient {
                 let fetchExpr: any TSExpr = TSCallExpr(
                     callee: TSMemberExpr(
                         base: TSIdentExpr("stub"),
-                        name: TSIdentExpr("send")
+                        name: "send"
                     ),
                     args: [
                         reqExpr,
@@ -361,7 +361,7 @@ fileprivate enum DateConvertDecls {
             name: "Date_encode",
             params: [.init(name: "d", type: TSIdentType("Date"))],
             body: TSBlockStmt([
-                TSReturnStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("d"), name: TSIdentExpr("getTime")), args: []))
+                TSReturnStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("d"), name: "getTime"), args: []))
             ])
         )
     }
