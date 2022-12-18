@@ -22,6 +22,9 @@ public struct EchoServiceStub<C: StubClientProtocol>: EchoServiceProtocol, Senda
     public func emptyRequestAndResponse() async throws {
         return try await client.send(path: "Echo/emptyRequestAndResponse")
     }
+    public func testTypeAliasToRawRepr(request: Student) async throws -> Student {
+        return try await client.send(path: "Echo/testTypeAliasToRawRepr", request: request)
+    }
 }
 
 extension StubClientProtocol {

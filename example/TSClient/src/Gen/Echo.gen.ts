@@ -1,3 +1,4 @@
+import { Student, Student_JSON, Student_decode } from "./Student.gen.js";
 import { User, User_JSON, User_decode } from "./User.gen.js";
 import { IStubClient } from "./common.gen.js";
 import {
@@ -15,6 +16,7 @@ export interface IEchoClient {
     testTypicalEntity(request: User): Promise<User>;
     testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response>;
     emptyRequestAndResponse(): Promise<void>;
+    testTypeAliasToRawRepr(request: Student): Promise<Student>;
 }
 
 export const bindEcho = (stub: IStubClient): IEchoClient => {
@@ -36,6 +38,10 @@ export const bindEcho = (stub: IStubClient): IEchoClient => {
         },
         async emptyRequestAndResponse(): Promise<void> {
             return await stub.send({}, "Echo/emptyRequestAndResponse") as void;
+        },
+        async testTypeAliasToRawRepr(request: Student): Promise<Student> {
+            const json = await stub.send(request, "Echo/testTypeAliasToRawRepr") as Student_JSON;
+            return Student_decode(json);
         }
     };
 };

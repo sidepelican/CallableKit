@@ -10,6 +10,8 @@ public protocol EchoServiceProtocol {
     func testComplexType(request: TestComplexType.Request) async throws -> TestComplexType.Response
 
     func emptyRequestAndResponse() async throws
+
+    func testTypeAliasToRawRepr(request: Student) async throws -> Student
 }
 
 public struct EchoHelloRequest: Codable, Sendable {

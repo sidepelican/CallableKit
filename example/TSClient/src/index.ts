@@ -2,6 +2,7 @@ import { bindAccount } from "./Gen/Account.gen.js";
 import { bindEcho } from "./Gen/Echo.gen.js";
 import { User_ID } from "./Gen/User.gen.js";
 import { createStubClient } from "./Gen/common.gen.js";
+import { Student, Student_IDz } from "./Gen/Student.gen.js";
 
 async function main() {
   const stub = createStubClient("http://127.0.0.1:8080");
@@ -40,6 +41,15 @@ async function main() {
 
   {
     await echoClient.emptyRequestAndResponse();
+  }
+
+  {
+    const student: Student = {
+      id: "0001" as Student_IDz,
+      name: "taro"
+    }
+    const res = await echoClient.testTypeAliasToRawRepr(student);
+    console.log(JSON.stringify(res));
   }
 
   {

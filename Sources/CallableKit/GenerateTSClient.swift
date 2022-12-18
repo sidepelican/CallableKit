@@ -229,14 +229,17 @@ struct GenerateTSClient {
         }
 
         // Request・Response型定義の出力
+
         for stype in file.types {
-            guard stype is StructDecl
-                    || stype is EnumDecl
-            else {
-                continue
-            }
             // 型定義とjson変換関数だけを抜き出し
-            try stype.walk { (stype) in
+            try stype.walkTypeDecls { (stype) in
+                guard stype is StructDecl
+                        || stype is EnumDecl
+                        || stype is TypeAliasDecl
+                else {
+                    return false
+                }
+
                 let converter = try generator.converter(for: stype.declaredInterfaceType)
                 codes += try converter.ownDecls().decls
                 return true

@@ -26,4 +26,8 @@ struct EchoService: EchoServiceProtocol {
 
     func emptyRequestAndResponse() async throws {
     }
+
+    func testTypeAliasToRawRepr(request: Student) async throws -> Student {
+        return request
+    }
 }
