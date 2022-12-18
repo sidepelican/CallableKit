@@ -170,7 +170,7 @@ private class TaskBox: @unchecked Sendable {
 extension URLSession {
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let taskBox = TaskBox()
-        try await withTaskCancellationHandler(operation: {
+        return try await withTaskCancellationHandler(operation: {
             try await withCheckedThrowingContinuation { continuation in
                 let task = dataTask(with: request) { data, response, error in
                     guard let data, let response else {
