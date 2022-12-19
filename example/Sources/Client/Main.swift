@@ -1,4 +1,5 @@
 import Foundation
+import APIDefinition
 
 struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
     var errorMessage: String
@@ -46,6 +47,15 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
 
         do {
             try await client.echo.emptyRequestAndResponse()
+        }
+
+        do {
+            let student: Student = .init(
+                id: Student.IDz(rawValue: "0001"),
+                name: "taro"
+            )
+            let res = try await client.echo.testTypeAliasToRawRepr(request: student)
+            dump(res)
         }
 
         do {
