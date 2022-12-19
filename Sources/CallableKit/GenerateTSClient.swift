@@ -237,7 +237,7 @@ struct GenerateTSClient {
                         || stype is EnumDecl
                         || stype is TypeAliasDecl
                 else {
-                    return false
+                    return true
                 }
 
                 let converter = try generator.converter(for: stype.declaredInterfaceType)
