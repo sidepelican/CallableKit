@@ -38,8 +38,8 @@ struct GenerateTSClient {
     }()
 
     private func generateCommon() -> TSSourceFile {
-        let string = TSIdentType("string")
-        return TSSourceFile([
+        let string = TSIdentType.string
+        var elements: [any ASTNode] = [
             TSInterfaceDecl(modifiers: [.export], name: "IStubClient", body: TSBlockStmt([
                 TSMethodDecl(
                     name: "send", params: [
@@ -51,11 +51,11 @@ struct GenerateTSClient {
             ])),
             TSTypeDecl(modifiers: [.export], name: "Headers", type: TSIdentType("Record", genericArgs: [string, string])),
             TSTypeDecl(modifiers: [.export], name: "StubClientOptions", type: TSObjectType([
-                .init(name: "headers", isOptional: true, type: TSFunctionType(params: [], result: TSUnionType([
+                .field(TSFieldDecl(name: "headers", isOptional: true, type: TSFunctionType(params: [], result: TSUnionType([
                     TSIdentType("Headers"),
                     TSIdentType("Promise", genericArgs: [TSIdentType("Headers")]),
-                ]))),
-                .init(name: "mapResponseError", isOptional: true, type: TSFunctionType(params: [.init(name: "e", type: TSIdentType("FetchHTTPStubResponseError"))], result: TSIdentType.error)),
+                ])))),
+                .field(TSFieldDecl(name: "mapResponseError", isOptional: true, type: TSFunctionType(params: [.init(name: "e", type: TSIdentType("FetchHTTPStubResponseError"))], result: TSIdentType.error))),
             ])),
             TSClassDecl(modifiers: [.export], name: "FetchHTTPStubResponseError", extends: TSIdentType("Error"), body: TSBlockStmt([
                 TSFieldDecl(modifiers: [.readonly], name: "path", type: string),
@@ -125,7 +125,14 @@ struct GenerateTSClient {
                     ])
                 )
             )
-        ])
+        ]
+
+        elements += [
+            DateConvertDecls.encodeDecl(),
+            DateConvertDecls.decodeDecl()
+        ]
+
+        return TSSourceFile(elements)
     }
 
     private func processFile(
@@ -273,42 +280,10 @@ struct GenerateTSClient {
     }
 
     func run() throws {
-        var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
-        g.isOutputFileName = { $0.hasSuffix(".gen.ts") }
-
-        var sources: [SourceEntry] = []
+        let g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
 
         try g.run { input, write in
-            let generator = CodeGenerator(
-                context: input.context,
-                typeConverterProvider: TypeConverterProvider(typeMap: typeMap)
-            )
-
-            // generate all ts codes
-            sources.append(.init(
-                file: "common.gen.ts",
-                source: generateCommon()
-            ))
-            let decodeLib = generator.generateHelperLibrary()
-            decodeLib.elements.append(DateConvertDecls.encodeDecl())
-            decodeLib.elements.append(DateConvertDecls.decodeDecl())
-            sources.append(.init(
-                file: "decode.gen.ts",
-                source: decodeLib
-            ))
-            for inputFile in input.files {
-                guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
-                let outputFile = outputFilename(for: inputFile)
-                sources.append(
-                    .init(
-                        file: outputFile,
-                        source: generated
-                    )
-                )
-            }
-
-            // collect all symbols
-            var symbolTable = SymbolTable(
+            var symbols = SymbolTable(
                 standardLibrarySymbols: SymbolTable.standardLibrarySymbols.union([
                     "Response",
                     "Object",
@@ -317,31 +292,35 @@ struct GenerateTSClient {
                     "fetch",
                 ])
             )
-            for source in sources {
-                for symbol in source.source.memberDeclaredNames {
-                    if let _ = symbolTable.find(symbol){
-                        throw MessageError("Duplicated symbol: \(symbol). Using the same name in multiple modules is not supported.")
-                    }
-                    symbolTable.add(symbol: symbol, file: .file(source.file))
-                }
+
+            let commonLib = PackageEntry(
+                file: dstDirectory.appendingPathComponent("common.ts"),
+                source: generateCommon()
+            )
+            symbols.add(source: commonLib.source, file: commonLib.file)
+            write.files.insert(
+                commonLib.file.relativePath(from: dstDirectory).relativePath
+            )
+
+            let generator = PackageGenerator(
+                context: input.context,
+                typeConverterProvider: TypeConverterProvider(typeMap: typeMap),
+                symbols: symbols,
+                importFileExtension: .js,
+                outputDirectory: dstDirectory
+            )
+            generator.didGenerateEntry = { (source, entry) in
+                let file = entry.file.relativePath(from: dstDirectory)
+                write.files.insert(file.relativePath)
+            }
+            generator.didWrite = { (file, source) in
+                print("generated...", file)
             }
 
-            // generate imports
-            for source in sources {
-                let imports = try source.source.buildAutoImportDecls(symbolTable: symbolTable)
-                for `import` in imports {
-                    fixImport(decl: `import`)
-                }
-                source.source.replaceImportDecls(imports)
-            }
-
-            // write
-            for source in sources {
-                try write(file: .init(
-                    name: source.file,
-                    content: source.source.print()
-                ))
-            }
+            var modules = input.context.modules
+            modules.removeAll { $0 === input.context.swiftModule }
+            let entries = try generator.generate(modules: modules)
+            try generator.write(entries: entries)
         }
     }
 }

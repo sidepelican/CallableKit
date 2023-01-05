@@ -49,14 +49,14 @@ struct Generator {
             context: context,
             module: context.getOrCreateModule(name: definitionModule)
         )
-        .read(file: srcDirectory)
+        .read(directory: srcDirectory)
         inputFiles.append(contentsOf: sources)
         for dependency in dependencies {
             let module = context.getOrCreateModule(
                 name: detectModuleName(dir: dependency) ?? dependency.lastPathComponent
             )
             let sources = try SwiftTypeReader.Reader(context: context,module: module)
-                .read(file: dependency)
+                .read(directory: dependency)
             inputFiles.append(contentsOf: sources)
         }
 
@@ -71,7 +71,24 @@ struct Generator {
                 continue
             }
             if !sink.files.contains(dstFile) {
-                try fileManager.removeItem(at: dstDirectory.appendingPathComponent(dstFile))
+                let path = dstDirectory.appendingPathComponent(dstFile)
+                var isDir: ObjCBool = false
+                if fileManager.fileExists(atPath: path.path, isDirectory: &isDir),
+                    !isDir.boolValue
+                {
+                    try fileManager.removeItem(at: path)
+                }
+            }
+        }
+        // 空のディレクトリを削除
+        for dstFile in try fileManager.subpathsOfDirectory(atPath: dstDirectory.path) {
+            let path = dstDirectory.appendingPathComponent(dstFile)
+            var isDir: ObjCBool = false
+            if fileManager.fileExists(atPath: path.path, isDirectory: &isDir),
+               isDir.boolValue,
+               try fileManager.contentsOfDirectory(atPath: path.path).isEmpty
+            {
+                try fileManager.removeItem(at: path)
             }
         }
     }

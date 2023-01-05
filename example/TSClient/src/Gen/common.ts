@@ -30,30 +30,48 @@ export function Array_encode<T, T_JSON>(entity: T[], T_encode: (entity: T) => T_
     return entity.map(T_encode);
 }
 
-export function Dictionary_decode<T, T_JSON>(json: { [key: string]: T_JSON; }, T_decode: (json: T_JSON) => T): { [key: string]: T; } {
-    const entity: { [key: string]: T; } = {};
+export function Dictionary_decode<T, T_JSON>(json: {
+    [key: string]: T_JSON;
+}, T_decode: (json: T_JSON) => T): Map<string, T> {
+    const entity = new Map<string, T>();
     for (const k in json) {
         if (json.hasOwnProperty(k)) {
-            entity[k] = T_decode(json[k]);
+            entity.set(k, T_decode(json[k]));
         }
     }
     return entity;
 }
 
-export function Dictionary_encode<T, T_JSON>(entity: { [key: string]: T; }, T_encode: (entity: T) => T_JSON): { [key: string]: T_JSON; } {
-    const json: { [key: string]: T_JSON; } = {};
-    for (const k in entity) {
-        if (entity.hasOwnProperty(k)) {
-            json[k] = T_encode(entity[k]);
-        }
+export function Dictionary_encode<T, T_JSON>(entity: Map<string, T>, T_encode: (entity: T) => T_JSON): {
+    [key: string]: T_JSON;
+} {
+    const json: {
+        [key: string]: T_JSON;
+    } = {};
+    for (const k in entity.keys()) {
+        json[k] = T_encode(entity.get(k) !!);
     }
     return json;
 }
 
-export function Date_encode(d: Date) {
-    return d.getTime();
-}
+export type TagOf<Type> = Type extends TagRecord<infer TAG>
+    ? TAG
+    : null extends Type
+        ? "Optional" & TagOf<Exclude<Type, null>>
+        : Type extends (infer E)[]
+            ? "Array" & TagOf<E>
+            : Type extends Map<string, infer V>
+                ? "Dictionary" & TagOf<V>
+                : never
+;
 
-export function Date_decode(unixMilli: number) {
-    return new Date(unixMilli);
-}
+export type TagRecord<Name extends string, Args extends any[] = []> = Args["length"] extends 0
+    ? {
+        $tag?: Name;
+    }
+    : {
+        $tag?: Name & {
+            [I in keyof Args]: TagOf<Args[I]>;
+        };
+    }
+;
