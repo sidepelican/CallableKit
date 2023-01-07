@@ -1,3 +1,4 @@
+import { Date_decode, Date_encode, IStubClient } from "../CallableKit.js";
 import {
     Array_decode,
     OptionalField_decode,
@@ -5,6 +6,54 @@ import {
     TagRecord,
     identity
 } from "../common.js";
+import {
+    Student,
+    Student_JSON,
+    Student_decode,
+    Student_encode
+} from "./Entity/Student.js";
+import {
+    User,
+    User_JSON,
+    User_decode,
+    User_encode
+} from "./Entity/User.js";
+
+export interface IEchoClient {
+    hello(request: EchoHelloRequest): Promise<EchoHelloResponse>;
+    tommorow(now: Date): Promise<Date>;
+    testTypicalEntity(request: User): Promise<User>;
+    testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response>;
+    emptyRequestAndResponse(): Promise<void>;
+    testTypeAliasToRawRepr(request: Student): Promise<Student>;
+}
+
+export const bindEcho = (stub: IStubClient): IEchoClient => {
+    return {
+        async hello(request: EchoHelloRequest): Promise<EchoHelloResponse> {
+            return await stub.send(request, "Echo/hello") as EchoHelloResponse;
+        },
+        async tommorow(now: Date): Promise<Date> {
+            const json = await stub.send(Date_encode(now), "Echo/tommorow") as number;
+            return Date_decode(json);
+        },
+        async testTypicalEntity(request: User): Promise<User> {
+            const json = await stub.send(User_encode(request), "Echo/testTypicalEntity") as User_JSON;
+            return User_decode(json);
+        },
+        async testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response> {
+            const json = await stub.send(request, "Echo/testComplexType") as TestComplexType_Response_JSON;
+            return TestComplexType_Response_decode(json);
+        },
+        async emptyRequestAndResponse(): Promise<void> {
+            return await stub.send({}, "Echo/emptyRequestAndResponse") as void;
+        },
+        async testTypeAliasToRawRepr(request: Student): Promise<Student> {
+            const json = await stub.send(Student_encode(request), "Echo/testTypeAliasToRawRepr") as Student_JSON;
+            return Student_decode(json);
+        }
+    };
+};
 
 export type EchoHelloRequest = {
     name: string;

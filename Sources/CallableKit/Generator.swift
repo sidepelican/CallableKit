@@ -77,6 +77,7 @@ struct Generator {
                     !isDir.boolValue
                 {
                     try fileManager.removeItem(at: path)
+                    print("removed...", path.relativePath)
                 }
             }
         }
@@ -89,6 +90,7 @@ struct Generator {
                try fileManager.contentsOfDirectory(atPath: path.path).isEmpty
             {
                 try fileManager.removeItem(at: path)
+                print("removed...", path.relativePath)
             }
         }
     }

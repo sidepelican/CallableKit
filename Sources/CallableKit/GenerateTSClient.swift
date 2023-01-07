@@ -137,11 +137,12 @@ struct GenerateTSClient {
 
     private func processFile(
         generator: CodeGenerator,
-        file: Generator.InputFile
-    ) throws -> TSSourceFile? {
-        var codes: [TSDecl] = []
+        swift: SourceFile,
+        ts: PackageEntry
+    ) throws {
+        var insertionIndex: Int = ts.source.elements.lastIndex(where: { $0 is TSImportDecl }) ?? 0
 
-        for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
+        for stype in swift.types.compactMap(ServiceProtocolScanner.scan) {
             let clientInterface = TSInterfaceDecl(
                 modifiers: [.export],
                 name: "I\(stype.serviceName)Client",
@@ -157,7 +158,8 @@ struct GenerateTSClient {
                     return method
                 })
             )
-            codes.append(clientInterface)
+            ts.source.elements.insert(clientInterface, at: insertionIndex)
+            insertionIndex += 1
 
             let functionsDecls: [TSMethodDecl] = try stype.functions.map { f in
                 let res: TSType = try f.response.map { try generator.converter(for: $0.raw).type(for: .entity) } ?? TSIdentType.void
@@ -222,7 +224,7 @@ struct GenerateTSClient {
                 )
             }
 
-            codes.append(TSVarDecl(
+            let bindDecl = TSVarDecl(
                 modifiers: [.export],
                 kind: .const, name: "bind\(stype.serviceName)",
                 initializer: TSClosureExpr(
@@ -232,30 +234,11 @@ struct GenerateTSClient {
                         TSReturnStmt(TSObjectExpr(functionsDecls.map(TSObjectExpr.Field.method)))
                     ])
                 )
-            ))
+            )
+
+            ts.source.elements.insert(bindDecl, at: insertionIndex)
+            insertionIndex += 1
         }
-
-        // Request・Response型定義の出力
-
-        for stype in file.types {
-            // 型定義とjson変換関数だけを抜き出し
-            try stype.walkTypeDecls { (stype) in
-                guard stype is StructDecl
-                        || stype is EnumDecl
-                        || stype is TypeAliasDecl
-                else {
-                    return true
-                }
-
-                let converter = try generator.converter(for: stype.declaredInterfaceType)
-                codes += try converter.ownDecls().decls
-                return true
-            }
-        }
-
-        if codes.isEmpty { return nil }
-
-        return TSSourceFile(codes)
     }
 
     private func outputFilename(for file: Generator.InputFile) -> String {
@@ -294,33 +277,41 @@ struct GenerateTSClient {
             )
 
             let commonLib = PackageEntry(
-                file: dstDirectory.appendingPathComponent("common.ts"),
+                file: dstDirectory.appendingPathComponent("CallableKit.ts"),
                 source: generateCommon()
             )
-            symbols.add(source: commonLib.source, file: commonLib.file)
-            write.files.insert(
-                commonLib.file.relativePath(from: dstDirectory).relativePath
-            )
 
-            let generator = PackageGenerator(
+            symbols.add(source: commonLib.source, file: commonLib.file)
+
+            let package = PackageGenerator(
                 context: input.context,
                 typeConverterProvider: TypeConverterProvider(typeMap: typeMap),
                 symbols: symbols,
                 importFileExtension: .js,
                 outputDirectory: dstDirectory
             )
-            generator.didGenerateEntry = { (source, entry) in
-                let file = entry.file.relativePath(from: dstDirectory)
-                write.files.insert(file.relativePath)
+            package.didGenerateEntry = { [unowned package] (source, entry) in
+                try self.processFile(
+                    generator: package.codeGenerator,
+                    swift: source,
+                    ts: entry
+                )
             }
-            generator.didWrite = { (file, source) in
-                print("generated...", file)
+            package.didWrite = { (file, source) in
+                print("generated...", file.relativePath)
             }
 
             var modules = input.context.modules
             modules.removeAll { $0 === input.context.swiftModule }
-            let entries = try generator.generate(modules: modules)
-            try generator.write(entries: entries)
+            var entries = try package.generate(modules: modules)
+            entries.append(commonLib)
+
+            for entry in entries {
+                let file = entry.file.relativePath(from: dstDirectory)
+                write.files.insert(file.relativePath)
+            }
+
+            try package.write(entries: entries)
         }
     }
 }
