@@ -1,8 +1,8 @@
-import { bindAccount } from "./Gen/Account.gen.js";
-import { bindEcho } from "./Gen/Echo.gen.js";
-import { User_ID } from "./Gen/User.gen.js";
-import { createStubClient } from "./Gen/common.gen.js";
-import { Student, Student_IDz } from "./Gen/Student.gen.js";
+import { bindAccount } from "./gen/APIDefinition/Account";
+import { bindEcho } from "./gen/APIDefinition/Echo";
+import { Student, Student_IDz } from "./gen/APIDefinition/Entity/Student";
+import { User_ID } from "./gen/APIDefinition/Entity/User";
+import { createStubClient } from "./gen/CallableKit";
 
 async function main() {
   const stub = createStubClient("http://127.0.0.1:8080");
@@ -20,7 +20,7 @@ async function main() {
   }
 
   {
-    const id = "id" as User_ID
+    const id = { rawValue: "id" } as User_ID;
     const res = await echoClient.testTypicalEntity({ id, name: "name" });
     console.log(JSON.stringify(res));
   }
@@ -45,7 +45,7 @@ async function main() {
 
   {
     const student: Student = {
-      id: "0001" as Student_IDz,
+      id: { rawValue: "0001" } as Student_IDz,
       name: "taro"
     }
     const res = await echoClient.testTypeAliasToRawRepr(student);
