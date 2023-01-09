@@ -1,10 +1,10 @@
-import { TagRecord } from "../../common.js";
+import { TagRecord } from "../../common.gen.js";
 import {
     GenericIDz,
     GenericIDz_JSON,
     GenericIDz_decode,
     GenericIDz_encode
-} from "./GenericID.js";
+} from "./GenericID.gen.js";
 
 export type Student = {
     id: Student_IDz;

@@ -14,6 +14,7 @@ struct GenerateTSClient {
     var dstDirectory: URL
     var dependencies: [URL]
     var nextjs: Bool
+    var `extension`: String = "gen.ts"
 
     private let typeMap: TypeMap = {
         var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
@@ -263,7 +264,15 @@ struct GenerateTSClient {
     }
 
     func run() throws {
-        let g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
+        let g = Generator(
+            definitionModule: definitionModule,
+            srcDirectory: srcDirectory,
+            dstDirectory: dstDirectory,
+            dependencies: dependencies,
+            isOutputFileName: { [ext = self.extension] (name) in
+                name.hasSuffix(ext)
+            }
+        )
 
         try g.run { input, write in
             var symbols = SymbolTable(
@@ -277,7 +286,7 @@ struct GenerateTSClient {
             )
 
             let commonLib = PackageEntry(
-                file: dstDirectory.appendingPathComponent("CallableKit.ts"),
+                file: dstDirectory.appendingPathComponent("CallableKit.\(`extension`)"),
                 source: generateCommon()
             )
 
@@ -288,7 +297,8 @@ struct GenerateTSClient {
                 typeConverterProvider: TypeConverterProvider(typeMap: typeMap),
                 symbols: symbols,
                 importFileExtension: .js,
-                outputDirectory: dstDirectory
+                outputDirectory: dstDirectory,
+                typeScriptExtension: `extension`
             )
             package.didGenerateEntry = { [unowned package] (source, entry) in
                 try self.processFile(

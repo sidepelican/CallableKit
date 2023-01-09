@@ -1,23 +1,23 @@
-import { Date_decode, Date_encode, IStubClient } from "../CallableKit.js";
+import { Date_decode, Date_encode, IStubClient } from "../CallableKit.gen.js";
 import {
     Array_decode,
     OptionalField_decode,
     Optional_decode,
     TagRecord,
     identity
-} from "../common.js";
+} from "../common.gen.js";
 import {
     Student,
     Student_JSON,
     Student_decode,
     Student_encode
-} from "./Entity/Student.js";
+} from "./Entity/Student.gen.js";
 import {
     User,
     User_JSON,
     User_decode,
     User_encode
-} from "./Entity/User.js";
+} from "./Entity/User.gen.js";
 
 export interface IEchoClient {
     hello(request: EchoHelloRequest): Promise<EchoHelloResponse>;

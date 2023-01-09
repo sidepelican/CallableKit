@@ -1,4 +1,4 @@
-import { Array_decode, Array_encode, TagRecord } from "../../common.js";
+import { Array_decode, Array_encode, TagRecord } from "../../common.gen.js";
 
 export type InputFieldError<E> = {
     name: E;

@@ -1,7 +1,7 @@
-import { IStubClient } from "../CallableKit.js";
-import { CodableResult, CodableResult_JSON, CodableResult_decode } from "../OtherDependency/CodableResult.js";
-import { TagRecord, identity } from "../common.js";
-import { SubmitError } from "./Entity/SubmitError.js";
+import { IStubClient } from "../CallableKit.gen.js";
+import { CodableResult, CodableResult_JSON, CodableResult_decode } from "../OtherDependency/CodableResult.gen.js";
+import { TagRecord, identity } from "../common.gen.js";
+import { SubmitError } from "./Entity/SubmitError.gen.js";
 
 export interface IAccountClient {
     signin(request: AccountSignin_Request): Promise<CodableResult<AccountSignin_Response, SubmitError<AccountSignin_Error>>>;

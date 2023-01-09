@@ -1,4 +1,4 @@
-import { TagRecord } from "../../common.js";
+import { TagRecord } from "../../common.gen.js";
 
 export type GenericIDz<T> = {
     rawValue: string;
