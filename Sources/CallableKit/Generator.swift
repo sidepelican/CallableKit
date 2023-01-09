@@ -66,19 +66,14 @@ struct Generator {
         try perform(input, sink)
 
         // リネームなどによって不要になった生成物を出力ディレクトリから削除
-        for dstFile in try fileManager.subpathsOfDirectory(atPath: dstDirectory.path) {
+        for dstFile in try findFiles(in: dstDirectory) {
             if let isOutputFileName = isOutputFileName, !isOutputFileName(URL(fileURLWithPath: dstFile).lastPathComponent) {
                 continue
             }
             if !sink.files.contains(dstFile) {
                 let path = dstDirectory.appendingPathComponent(dstFile)
-                var isDir: ObjCBool = false
-                if fileManager.fileExists(atPath: path.path, isDirectory: &isDir),
-                    !isDir.boolValue
-                {
-                    try fileManager.removeItem(at: path)
-                    print("removed...", path.relativePath)
-                }
+                try fileManager.removeItem(at: path)
+                print("removed...", path.relativePath)
             }
         }
         // 空のディレクトリを削除
@@ -95,8 +90,8 @@ struct Generator {
         }
     }
 
-    private func findFiles(in directory: URL) -> [String] {
-        (fileManager.subpaths(atPath: directory.path) ?? [])
+    private func findFiles(in directory: URL) throws -> [String] {
+        try fileManager.subpathsOfDirectory(atPath: directory.path)
             .filter {
                 !fileManager.isDirectory(at: directory.appendingPathComponent($0))
             }
