@@ -14,6 +14,7 @@ struct GenerateTSClient {
     var dstDirectory: URL
     var dependencies: [URL]
     var nextjs: Bool
+    var `extension`: String = "gen.ts"
 
     private let typeMap: TypeMap = {
         var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
@@ -38,8 +39,8 @@ struct GenerateTSClient {
     }()
 
     private func generateCommon() -> TSSourceFile {
-        let string = TSIdentType("string")
-        return TSSourceFile([
+        let string = TSIdentType.string
+        var elements: [any ASTNode] = [
             TSInterfaceDecl(modifiers: [.export], name: "IStubClient", body: TSBlockStmt([
                 TSMethodDecl(
                     name: "send", params: [
@@ -51,11 +52,11 @@ struct GenerateTSClient {
             ])),
             TSTypeDecl(modifiers: [.export], name: "Headers", type: TSIdentType("Record", genericArgs: [string, string])),
             TSTypeDecl(modifiers: [.export], name: "StubClientOptions", type: TSObjectType([
-                .init(name: "headers", isOptional: true, type: TSFunctionType(params: [], result: TSUnionType([
+                .field(TSFieldDecl(name: "headers", isOptional: true, type: TSFunctionType(params: [], result: TSUnionType([
                     TSIdentType("Headers"),
                     TSIdentType("Promise", genericArgs: [TSIdentType("Headers")]),
-                ]))),
-                .init(name: "mapResponseError", isOptional: true, type: TSFunctionType(params: [.init(name: "e", type: TSIdentType("FetchHTTPStubResponseError"))], result: TSIdentType.error)),
+                ])))),
+                .field(TSFieldDecl(name: "mapResponseError", isOptional: true, type: TSFunctionType(params: [.init(name: "e", type: TSIdentType("FetchHTTPStubResponseError"))], result: TSIdentType.error))),
             ])),
             TSClassDecl(modifiers: [.export], name: "FetchHTTPStubResponseError", extends: TSIdentType("Error"), body: TSBlockStmt([
                 TSFieldDecl(modifiers: [.readonly], name: "path", type: string),
@@ -125,16 +126,24 @@ struct GenerateTSClient {
                     ])
                 )
             )
-        ])
+        ]
+
+        elements += [
+            DateConvertDecls.encodeDecl(),
+            DateConvertDecls.decodeDecl()
+        ]
+
+        return TSSourceFile(elements)
     }
 
     private func processFile(
         generator: CodeGenerator,
-        file: Generator.InputFile
-    ) throws -> TSSourceFile? {
-        var codes: [TSDecl] = []
+        swift: SourceFile,
+        ts: PackageEntry
+    ) throws {
+        var insertionIndex: Int = ts.source.elements.lastIndex(where: { $0 is TSImportDecl }) ?? 0
 
-        for stype in file.types.compactMap(ServiceProtocolScanner.scan) {
+        for stype in swift.types.compactMap(ServiceProtocolScanner.scan) {
             let clientInterface = TSInterfaceDecl(
                 modifiers: [.export],
                 name: "I\(stype.serviceName)Client",
@@ -150,7 +159,8 @@ struct GenerateTSClient {
                     return method
                 })
             )
-            codes.append(clientInterface)
+            ts.source.elements.insert(clientInterface, at: insertionIndex)
+            insertionIndex += 1
 
             let functionsDecls: [TSMethodDecl] = try stype.functions.map { f in
                 let res: TSType = try f.response.map { try generator.converter(for: $0.raw).type(for: .entity) } ?? TSIdentType.void
@@ -215,7 +225,7 @@ struct GenerateTSClient {
                 )
             }
 
-            codes.append(TSVarDecl(
+            let bindDecl = TSVarDecl(
                 modifiers: [.export],
                 kind: .const, name: "bind\(stype.serviceName)",
                 initializer: TSClosureExpr(
@@ -225,90 +235,26 @@ struct GenerateTSClient {
                         TSReturnStmt(TSObjectExpr(functionsDecls.map(TSObjectExpr.Field.method)))
                     ])
                 )
-            ))
+            )
+
+            ts.source.elements.insert(bindDecl, at: insertionIndex)
+            insertionIndex += 1
         }
-
-        // Request・Response型定義の出力
-
-        for stype in file.types {
-            // 型定義とjson変換関数だけを抜き出し
-            try stype.walkTypeDecls { (stype) in
-                guard stype is StructDecl
-                        || stype is EnumDecl
-                        || stype is TypeAliasDecl
-                else {
-                    return true
-                }
-
-                let converter = try generator.converter(for: stype.declaredInterfaceType)
-                codes += try converter.ownDecls().decls
-                return true
-            }
-        }
-
-        if codes.isEmpty { return nil }
-
-        return TSSourceFile(codes)
-    }
-
-    private func outputFilename(for file: Generator.InputFile) -> String {
-        let name = URL(fileURLWithPath: file.file.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
-        if file.module.name != definitionModule {
-            return "\(file.module.name)/\(name)"
-        } else {
-            return name
-        }
-    }
-
-    private func fixImport(decl: TSImportDecl) {
-        var file = decl.from
-        if file.hasSuffix(".ts") {
-            if nextjs {
-                file = "./" + (file as NSString).deletingPathExtension
-            } else {
-                file = "./" + (file as NSString).deletingPathExtension + ".js"
-            }
-        }
-        decl.from = file
     }
 
     func run() throws {
-        var g = Generator(definitionModule: definitionModule, srcDirectory: srcDirectory, dstDirectory: dstDirectory, dependencies: dependencies)
-        g.isOutputFileName = { $0.hasSuffix(".gen.ts") }
-
-        var sources: [SourceEntry] = []
+        let g = Generator(
+            definitionModule: definitionModule,
+            srcDirectory: srcDirectory,
+            dstDirectory: dstDirectory,
+            dependencies: dependencies,
+            isOutputFileName: { [ext = self.extension] (name) in
+                name.hasSuffix(ext)
+            }
+        )
 
         try g.run { input, write in
-            let generator = CodeGenerator(
-                context: input.context,
-                typeConverterProvider: TypeConverterProvider(typeMap: typeMap)
-            )
-
-            // generate all ts codes
-            sources.append(.init(
-                file: "common.gen.ts",
-                source: generateCommon()
-            ))
-            let decodeLib = generator.generateHelperLibrary()
-            decodeLib.elements.append(DateConvertDecls.encodeDecl())
-            decodeLib.elements.append(DateConvertDecls.decodeDecl())
-            sources.append(.init(
-                file: "decode.gen.ts",
-                source: decodeLib
-            ))
-            for inputFile in input.files {
-                guard let generated = try processFile(generator: generator, file: inputFile) else { continue }
-                let outputFile = outputFilename(for: inputFile)
-                sources.append(
-                    .init(
-                        file: outputFile,
-                        source: generated
-                    )
-                )
-            }
-
-            // collect all symbols
-            var symbolTable = SymbolTable(
+            var symbols = SymbolTable(
                 standardLibrarySymbols: SymbolTable.standardLibrarySymbols.union([
                     "Response",
                     "Object",
@@ -317,32 +263,46 @@ struct GenerateTSClient {
                     "fetch",
                 ])
             )
-            for source in sources {
-                for symbol in source.source.memberDeclaredNames {
-                    if let _ = symbolTable.find(symbol){
-                        throw MessageError("Duplicated symbol: \(symbol). Using the same name in multiple modules is not supported.")
-                    }
-                    symbolTable.add(symbol: symbol, file: .file(source.file))
-                }
+
+            let commonLib = PackageEntry(
+                file: dstDirectory.appendingPathComponent("CallableKit.\(`extension`)"),
+                source: generateCommon()
+            )
+
+            symbols.add(source: commonLib.source, file: commonLib.file)
+
+            let package = PackageGenerator(
+                context: input.context,
+                typeConverterProvider: TypeConverterProvider(typeMap: typeMap),
+                symbols: symbols,
+                importFileExtension: nextjs ? .none : .js,
+                outputDirectory: dstDirectory,
+                typeScriptExtension: `extension`
+            )
+            package.didGenerateEntry = { [unowned package] (source, entry) in
+                try self.processFile(
+                    generator: package.codeGenerator,
+                    swift: source,
+                    ts: entry
+                )
             }
 
-            // generate imports
-            for source in sources {
-                let imports = try source.source.buildAutoImportDecls(symbolTable: symbolTable)
-                for `import` in imports {
-                    fixImport(decl: `import`)
-                }
-                source.source.replaceImportDecls(imports)
-            }
+            var modules = input.context.modules
+            modules.removeAll { $0 === input.context.swiftModule }
+            var entries = try package.generate(modules: modules)
+            entries.append(commonLib)
 
-            // write
-            for source in sources {
-                try write(file: .init(
-                    name: source.file,
-                    content: source.source.print()
-                ))
+            for entry in entries {
+                try write(file: toOutputFile(entry: entry))
             }
         }
+    }
+
+    private func toOutputFile(entry: PackageEntry) -> Generator.OutputFile {
+        return Generator.OutputFile(
+            name: entry.file.relativePath(from: dstDirectory).relativePath,
+            content: entry.print()
+        )
     }
 }
 

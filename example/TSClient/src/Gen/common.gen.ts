@@ -1,49 +1,77 @@
-export interface IStubClient {
-    send(request: unknown, servicePath: string): Promise<unknown>;
+export function identity<T>(json: T): T {
+    return json;
 }
 
-export type Headers = Record<string, string>;
-
-export type StubClientOptions = {
-    headers?: () => Headers | Promise<Headers>;
-    mapResponseError?: (e: FetchHTTPStubResponseError) => Error;
-};
-
-export class FetchHTTPStubResponseError extends Error {
-    readonly path: string;
-    readonly response: Response;
-
-    constructor(path: string, response: Response) {
-        super(`ResponseError. path=${path}, status=${response.status}`);
-        this.path = path;
-        this.response = response;
-    }
+export function OptionalField_decode<T, T_JSON>(json: T_JSON | undefined, T_decode: (json: T_JSON) => T): T | undefined {
+    if (json === undefined) return undefined;
+    return T_decode(json);
 }
 
-export const createStubClient = (baseURL: string, options?: StubClientOptions): IStubClient => {
-    return {
-        async send(request, servicePath) {
-            let optionHeaders: Headers = {};
-            if (options?.headers) {
-                optionHeaders = await options.headers();
-            }
-            const res = await fetch(new URL(servicePath, baseURL).toString(), {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...optionHeaders
-                },
-                body: JSON.stringify(request)
-            });
-            if (! res.ok) {
-                const e = new FetchHTTPStubResponseError(servicePath, res);
-                if (options?.mapResponseError) {
-                    throw options.mapResponseError(e);
-                } else {
-                    throw e;
-                }
-            }
-            return await res.json();
+export function OptionalField_encode<T, T_JSON>(entity: T | undefined, T_encode: (entity: T) => T_JSON): T_JSON | undefined {
+    if (entity === undefined) return undefined;
+    return T_encode(entity);
+}
+
+export function Optional_decode<T, T_JSON>(json: T_JSON | null, T_decode: (json: T_JSON) => T): T | null {
+    if (json === null) return null;
+    return T_decode(json);
+}
+
+export function Optional_encode<T, T_JSON>(entity: T | null, T_encode: (entity: T) => T_JSON): T_JSON | null {
+    if (entity === null) return null;
+    return T_encode(entity);
+}
+
+export function Array_decode<T, T_JSON>(json: T_JSON[], T_decode: (json: T_JSON) => T): T[] {
+    return json.map(T_decode);
+}
+
+export function Array_encode<T, T_JSON>(entity: T[], T_encode: (entity: T) => T_JSON): T_JSON[] {
+    return entity.map(T_encode);
+}
+
+export function Dictionary_decode<T, T_JSON>(json: {
+    [key: string]: T_JSON;
+}, T_decode: (json: T_JSON) => T): Map<string, T> {
+    const entity = new Map<string, T>();
+    for (const k in json) {
+        if (json.hasOwnProperty(k)) {
+            entity.set(k, T_decode(json[k]));
         }
-    };
-};
+    }
+    return entity;
+}
+
+export function Dictionary_encode<T, T_JSON>(entity: Map<string, T>, T_encode: (entity: T) => T_JSON): {
+    [key: string]: T_JSON;
+} {
+    const json: {
+        [key: string]: T_JSON;
+    } = {};
+    for (const k in entity.keys()) {
+        json[k] = T_encode(entity.get(k) !!);
+    }
+    return json;
+}
+
+export type TagOf<Type> = Type extends TagRecord<infer TAG>
+    ? TAG
+    : null extends Type
+        ? "Optional" & TagOf<Exclude<Type, null>>
+        : Type extends (infer E)[]
+            ? "Array" & TagOf<E>
+            : Type extends Map<string, infer V>
+                ? "Dictionary" & TagOf<V>
+                : never
+;
+
+export type TagRecord<Name extends string, Args extends any[] = []> = Args["length"] extends 0
+    ? {
+        $tag?: Name;
+    }
+    : {
+        $tag?: Name & {
+            [I in keyof Args]: TagOf<Args[I]>;
+        };
+    }
+;
