@@ -301,7 +301,7 @@ struct GenerateTSClient {
     private func toOutputFile(entry: PackageEntry) -> Generator.OutputFile {
         return Generator.OutputFile(
             name: entry.file.relativePath(from: dstDirectory).relativePath,
-            content: entry.source.print()
+            content: entry.print()
         )
     }
 }
