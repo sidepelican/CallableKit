@@ -286,9 +286,6 @@ struct GenerateTSClient {
                     ts: entry
                 )
             }
-            package.didWrite = { (file, source) in
-                print("generated...", file.relativePath)
-            }
 
             var modules = input.context.modules
             modules.removeAll { $0 === input.context.swiftModule }
@@ -296,12 +293,16 @@ struct GenerateTSClient {
             entries.append(commonLib)
 
             for entry in entries {
-                let file = entry.file.relativePath(from: dstDirectory)
-                write.files.insert(file.relativePath)
+                try write(file: toOutputFile(entry: entry))
             }
-
-            try package.write(entries: entries)
         }
+    }
+
+    private func toOutputFile(entry: PackageEntry) -> Generator.OutputFile {
+        return Generator.OutputFile(
+            name: entry.file.relativePath(from: dstDirectory).relativePath,
+            content: entry.source.print()
+        )
     }
 }
 

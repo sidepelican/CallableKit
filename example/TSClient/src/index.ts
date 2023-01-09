@@ -1,8 +1,8 @@
-import { bindAccount } from "./Gen/APIDefinition/Account.js";
-import { bindEcho } from "./Gen/APIDefinition/Echo.js";
-import { Student, Student_IDz } from "./Gen/APIDefinition/Entity/Student.js";
-import { User_ID } from "./Gen/APIDefinition/Entity/User.js";
-import { createStubClient } from "./Gen/CallableKit.js";
+import { bindAccount } from "./Gen/APIDefinition/Account.gen.js";
+import { bindEcho } from "./Gen/APIDefinition/Echo.gen.js";
+import { Student, Student_IDz } from "./Gen/APIDefinition/Entity/Student.gen.js";
+import { User_ID } from "./Gen/APIDefinition/Entity/User.gen.js";
+import { createStubClient } from "./Gen/CallableKit.gen.js";
 
 async function main() {
   const stub = createStubClient("http://127.0.0.1:8080");
