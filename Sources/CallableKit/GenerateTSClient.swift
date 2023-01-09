@@ -242,27 +242,6 @@ struct GenerateTSClient {
         }
     }
 
-    private func outputFilename(for file: Generator.InputFile) -> String {
-        let name = URL(fileURLWithPath: file.file.lastPathComponent.replacingOccurrences(of: ".swift", with: ".gen.ts")).lastPathComponent
-        if file.module.name != definitionModule {
-            return "\(file.module.name)/\(name)"
-        } else {
-            return name
-        }
-    }
-
-    private func fixImport(decl: TSImportDecl) {
-        var file = decl.from
-        if file.hasSuffix(".ts") {
-            if nextjs {
-                file = "./" + (file as NSString).deletingPathExtension
-            } else {
-                file = "./" + (file as NSString).deletingPathExtension + ".js"
-            }
-        }
-        decl.from = file
-    }
-
     func run() throws {
         let g = Generator(
             definitionModule: definitionModule,
@@ -296,7 +275,7 @@ struct GenerateTSClient {
                 context: input.context,
                 typeConverterProvider: TypeConverterProvider(typeMap: typeMap),
                 symbols: symbols,
-                importFileExtension: .js,
+                importFileExtension: nextjs ? .none : .js,
                 outputDirectory: dstDirectory,
                 typeScriptExtension: `extension`
             )
