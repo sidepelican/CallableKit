@@ -23,7 +23,7 @@ struct Generator {
 
     class OutputSink {
         public init(dstDirectory: URL, fileManager: FileManager) {
-            self.dstDirectory = dstDirectory.absoluteURL
+            self.dstDirectory = dstDirectory.absoluteURL.standardized
             self.fileManager = fileManager
         }
 
