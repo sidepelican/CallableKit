@@ -23,21 +23,28 @@ struct Generator {
 
     class OutputSink {
         public init(dstDirectory: URL, fileManager: FileManager) {
-            self.dstDirectory = dstDirectory
+            self.dstDirectory = dstDirectory.absoluteURL
             self.fileManager = fileManager
         }
 
-        var files: Set<String> = []
-        var dstDirectory: URL
-        var fileManager: FileManager
+        let dstDirectory: URL
+        let fileManager: FileManager
+        private var writtenFiles: Set<URL> = []
+
+        func path(name: String) -> URL {
+            dstDirectory.appendingPathComponent(name).absoluteURL.standardized
+        }
+
+        func isWritten(name: String) -> Bool {
+            writtenFiles.contains(path(name: name))
+        }
 
         func callAsFunction(file: OutputFile) throws {
-            let dst = dstDirectory.appendingPathComponent(file.name)
+            let dst = self.path(name: file.name)
             try fileManager.createDirectory(at: dst.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try file.content.data(using: .utf8)!
-                .write(to: dstDirectory.appendingPathComponent(file.name), options: .atomic)
+            try file.content.data(using: .utf8)!.write(to: dst, options: .atomic)
             print("generated...", file.name)
-            files.insert(file.name)
+            writtenFiles.insert(dst)
         }
     }
 
@@ -70,22 +77,21 @@ struct Generator {
             if let isOutputFileName = isOutputFileName, !isOutputFileName(URL(fileURLWithPath: dstFile).lastPathComponent) {
                 continue
             }
-            if !sink.files.contains(dstFile) {
-                let path = dstDirectory.appendingPathComponent(dstFile)
-                try fileManager.removeItem(at: path)
-                print("removed...", path.relativePath)
+            if !sink.isWritten(name: dstFile) {
+                try fileManager.removeItem(at: sink.path(name: dstFile))
+                print("removed...", dstFile)
             }
         }
         // 空のディレクトリを削除
         for dstFile in try fileManager.subpathsOfDirectory(atPath: dstDirectory.path) {
-            let path = dstDirectory.appendingPathComponent(dstFile)
+            let path = sink.path(name: dstFile)
             var isDir: ObjCBool = false
             if fileManager.fileExists(atPath: path.path, isDirectory: &isDir),
                isDir.boolValue,
                try fileManager.contentsOfDirectory(atPath: path.path).isEmpty
             {
                 try fileManager.removeItem(at: path)
-                print("removed...", path.relativePath)
+                print("removed...", dstFile)
             }
         }
     }
