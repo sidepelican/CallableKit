@@ -289,7 +289,7 @@ struct GenerateTSClient {
 
             var modules = input.context.modules
             modules.removeAll { $0 === input.context.swiftModule }
-            var entries = try package.generate(modules: modules)
+            var entries = try package.generate(modules: modules).entries
             entries.append(commonLib)
 
             for entry in entries {
@@ -300,7 +300,7 @@ struct GenerateTSClient {
 
     private func toOutputFile(entry: PackageEntry) -> Generator.OutputFile {
         return Generator.OutputFile(
-            name: entry.file.relativePath(from: dstDirectory).relativePath,
+            name: URLs.relativePath(to: entry.file, from: dstDirectory).relativePath,
             content: entry.print()
         )
     }
