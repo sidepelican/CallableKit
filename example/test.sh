@@ -1,9 +1,7 @@
 #!/bin/bash -ue
 set -o pipefail
 
-if [ "$(uname)" == 'Darwin' ]; then
-  swift package --allow-writing-to-package-directory codegen
-fi
+swift package --allow-writing-to-package-directory codegen
 
 swift build -c release
 .build/release/Server &
