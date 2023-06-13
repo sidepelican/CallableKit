@@ -23,17 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/CodableToTypeScript",
       "state" : {
-        "revision" : "63c8e5e7b8d3f53f77c99a51f17c8eb843214ac2",
-        "version" : "2.6.8"
-      }
-    },
-    {
-      "identity" : "codegenkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/omochi/CodegenKit",
-      "state" : {
-        "revision" : "80118d10a31a51a1d8645a39df679c8618ebf140",
-        "version" : "1.2.2"
+        "revision" : "5a275e389ae179222568fbdd54a105bc16b1d266",
+        "version" : "2.8.1"
       }
     },
     {
@@ -77,8 +68,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
       "state" : {
-        "revision" : "9f39744e025c7d377987f30b03770805dcb0bcd1",
-        "version" : "1.1.4"
+        "revision" : "fee6933f37fde9a5e12a1e4aeaa93fe60116ff2a",
+        "version" : "1.2.2"
       }
     },
     {
@@ -115,15 +106,6 @@
       "state" : {
         "revision" : "92a04c10fc5ce0504f8396aac7392126033e547c",
         "version" : "2.2.2"
-      }
-    },
-    {
-      "identity" : "swift-format",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-format",
-      "state" : {
-        "revision" : "5f184220d032a019a63df457cdea4b9c8241e911",
-        "version" : "0.50700.1"
       }
     },
     {
@@ -203,26 +185,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-syntax",
       "state" : {
-        "revision" : "72d3da66b085c2299dd287c2be3b92b5ebd226de",
-        "version" : "0.50700.1"
-      }
-    },
-    {
-      "identity" : "swift-system",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-system.git",
-      "state" : {
-        "revision" : "836bc4557b74fe6d2660218d56e3ce96aff76574",
-        "version" : "1.1.1"
-      }
-    },
-    {
-      "identity" : "swift-tools-support-core",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-tools-support-core.git",
-      "state" : {
-        "revision" : "4f07be3dc201f6e2ee85b6942d0c220a16926811",
-        "version" : "0.2.7"
+        "revision" : "cd793adf5680e138bf2bcbaacc292490175d0dcd",
+        "version" : "508.0.0"
       }
     },
     {
@@ -230,8 +194,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/SwiftTypeReader",
       "state" : {
-        "revision" : "51a04d05c0e3dfbb196693e9c6a8400390bf542a",
-        "version" : "2.4.2"
+        "revision" : "dca7ae04b1cc71db4fb82ea713982adaa0c0a695",
+        "version" : "2.5.1"
       }
     },
     {
@@ -239,8 +203,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/TypeScriptAST",
       "state" : {
-        "revision" : "9f0c8cff4d29a487a32b15a2f9912b1483ed2f1d",
-        "version" : "1.8.4"
+        "revision" : "c64e4a060a3daa9f8c964699ca4d8210235df20b",
+        "version" : "1.8.7"
       }
     },
     {
