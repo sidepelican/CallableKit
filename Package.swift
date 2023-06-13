@@ -1,4 +1,4 @@
-// swift-tools-version: 5.6
+// swift-tools-version: 5.8
 
 import PackageDescription
 
@@ -10,9 +10,9 @@ let package = Package(
         .library(name: "CallableKit", targets: ["CallableKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.1.0"),
-        .package(url: "https://github.com/omochi/CodableToTypeScript", from: "2.6.8"),
-        .package(url: "https://github.com/omochi/SwiftTypeReader", from: "2.4.1")
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.2.2"),
+        .package(url: "https://github.com/omochi/CodableToTypeScript", from: "2.8.0"),
+        .package(url: "https://github.com/omochi/SwiftTypeReader", from: "2.5.1")
     ],
     targets: [
         .executableTarget(

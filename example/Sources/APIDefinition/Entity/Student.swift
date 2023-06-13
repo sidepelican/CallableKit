@@ -1,4 +1,4 @@
-public struct Student: Codable {
+public struct Student: Codable, Sendable {
     public typealias IDz = GenericIDz<Student>
 
     public init(

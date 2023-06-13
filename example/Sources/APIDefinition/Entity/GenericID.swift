@@ -1,4 +1,4 @@
-public struct GenericIDz<T>: Codable & RawRepresentable {
+public struct GenericIDz<T>: Codable & RawRepresentable & Sendable {
     public init(rawValue: String) {
         self.rawValue = rawValue
     }
