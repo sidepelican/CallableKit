@@ -9,7 +9,7 @@ struct AccountServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: Acc
         self.serviceBuilder = builder
     }
 
-    func boot(routes: RoutesBuilder) throws {
+    func boot(routes: any RoutesBuilder) throws {
         routes.group("Account") { group in
             group.post("signin", use: bridge.makeHandler(serviceBuilder, { $0.signin }))
         }

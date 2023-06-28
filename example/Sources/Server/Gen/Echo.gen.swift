@@ -9,7 +9,7 @@ struct EchoServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: EchoSe
         self.serviceBuilder = builder
     }
 
-    func boot(routes: RoutesBuilder) throws {
+    func boot(routes: any RoutesBuilder) throws {
         routes.group("Echo") { group in
             group.post("hello", use: bridge.makeHandler(serviceBuilder, { $0.hello }))
             group.post("tommorow", use: bridge.makeHandler(serviceBuilder, { $0.tommorow }))

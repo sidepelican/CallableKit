@@ -160,7 +160,7 @@ struct \(stype.serviceName)ServiceProvider<Bridge: VaporToServiceBridgeProtocol,
         self.serviceBuilder = builder
     }
 
-    func boot(routes: RoutesBuilder) throws {
+    func boot(routes: any RoutesBuilder) throws {
         routes.group("\(stype.serviceName)") { group in
 \(stype.functions.map { """
             group.post("\($0.name)", use: bridge.makeHandler(serviceBuilder, { $0.\($0.name) }))
