@@ -20,22 +20,8 @@ struct GenerateTSClient {
         var typeMapTable: [String: TypeMap.Entry] = TypeMap.defaultTable
         typeMapTable["URL"] = .identity(name: "string")
         typeMapTable["Date"] = .coding(entityType: "Date", jsonType: "number", decode: "Date_decode", encode: "Date_encode")
-        return TypeMap(table: typeMapTable) { type -> TypeMap.Entry? in
-            if let type = type.asNominal,
-               let _ = type.nominalTypeDecl.rawValueType()
-            {
-                return nil
-            }
-
-            let typeRepr = type.toTypeRepr(containsModule: false)
-            if let typeRepr = typeRepr as? IdentTypeRepr,
-               let lastElement = typeRepr.elements.last,
-               lastElement.name.hasSuffix("ID")
-            {
-                return .identity(name: "string")
-            }
-            return nil
-        }
+        typeMapTable["UUID"] = .identity(name: "string")
+        return TypeMap(table: typeMapTable)
     }()
 
     private func generateCommon() -> TSSourceFile {
@@ -130,7 +116,7 @@ struct GenerateTSClient {
 
         elements += [
             DateConvertDecls.encodeDecl(),
-            DateConvertDecls.decodeDecl()
+            DateConvertDecls.decodeDecl(),
         ]
 
         return TSSourceFile(elements)
