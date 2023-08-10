@@ -226,6 +226,10 @@ struct GenerateTSClient {
             ts.source.elements.insert(bindDecl, at: insertionIndex)
             insertionIndex += 1
         }
+
+        ts.source.elements.insert(TSCustomType(
+            text: "// @ts-nocheck TS6133\n"
+        ), at: 0)
     }
 
     func run() throws {
