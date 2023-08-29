@@ -1,6 +1,6 @@
 import { bindAccount } from "./Gen/APIDefinition/Account.gen.js";
 import { bindEcho } from "./Gen/APIDefinition/Echo.gen.js";
-import { Student, Student_IDz } from "./Gen/APIDefinition/Entity/Student.gen.js";
+import { Student } from "./Gen/APIDefinition/Entity/Student.gen.js";
 import { User_ID } from "./Gen/APIDefinition/Entity/User.gen.js";
 import { createStubClient } from "./Gen/CallableKit.gen.js";
 
@@ -20,7 +20,7 @@ async function main() {
   }
 
   {
-    const id = { rawValue: "id" } as User_ID;
+    const id = "id" as User_ID;
     const res = await echoClient.testTypicalEntity({ id, name: "name" });
     console.log(JSON.stringify(res));
   }
@@ -45,7 +45,7 @@ async function main() {
 
   {
     const student: Student = {
-      id: { rawValue: "0001" } as Student_IDz,
+      id: "0001",
       name: "taro"
     }
     const res = await echoClient.testTypeAliasToRawRepr(student);

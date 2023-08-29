@@ -1,14 +1,14 @@
 public struct Student: Codable, Sendable {
-    public typealias IDz = GenericIDz<Student>
+    public typealias ID = GenericID<Student>
 
     public init(
-        id: IDz,
+        id: ID,
         name: String
     ) {
         self.id = id
         self.name = name
     }
 
-    public var id: IDz
+    public var id: ID
     public var name: String
 }

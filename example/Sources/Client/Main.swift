@@ -51,7 +51,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
 
         do {
             let student: Student = .init(
-                id: Student.IDz(rawValue: "0001"),
+                id: Student.ID(rawValue: "0001"),
                 name: "taro"
             )
             let res = try await client.echo.testTypeAliasToRawRepr(request: student)
