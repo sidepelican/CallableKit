@@ -1,5 +1,6 @@
 public struct Student: Codable, Sendable {
     public typealias ID = GenericID<Student>
+    public typealias ID2 = GenericID2<Student, Int>
 
     public init(
         id: ID,

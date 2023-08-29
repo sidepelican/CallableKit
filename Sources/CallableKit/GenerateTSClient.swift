@@ -165,16 +165,8 @@ struct GenerateTSClient {
                     let orgStype = stype
                     var stype = stype
                     var updated = false
-//                    if stype.asStruct != nil {
-//                        print("checking.. '\(stype)' (\(type(of: stype)))")
-//                    }
-//                    if stype.asStruct?.decl.inheritedTypeReprs.isEmpty == false {
-//                        print(stype.asStruct!.decl.inheritedTypeReprs)
-//                        print(stype.asStruct!.decl.inheritedTypeReprs.map({ type(of: $0) }))
-//                    }
                     while let `struct` = stype.asStruct,
                           `struct`.nominalTypeDecl.inheritedTypes.contains(where: { (t) in t.description == "RawRepresentable" }) == true {
-//                        print("RawRepresentable struct '\(stype)' found!")
                         if let rawValueDecl = `struct`.decl.properties.first(where: { $0.name == "rawValue" }) {
                             stype = rawValueDecl.typeRepr.resolve(from: rawValueDecl.context)
                             updated = true
@@ -184,9 +176,12 @@ struct GenerateTSClient {
                         }
                     }
                     if updated,
-                       let name = stype.toTypeRepr(containsModule: false).asIdent?.elements.last?.name,
-                       let entry = typeMap.table[name] {
-                        return RawRepresentableConverter(generator: generator, swiftType: orgStype, lastEntry: entry)
+                       let name = stype.toTypeRepr(containsModule: false).asIdent?.elements.last?.name {
+                        if let entry = typeMap.table[name] {
+                            return RawRepresentableConverter(generator: generator, swiftType: orgStype, lastEntry: entry)
+                        } else {
+                            return RawRepresentableConverter(generator: generator, swiftType: orgStype, lastEntry: .identity(name: name))
+                        }
                     }
                     return nil
                 }),
