@@ -276,6 +276,7 @@ struct GenerateTSClient {
             var modules = input.context.modules
             modules.removeAll { $0 === input.context.swiftModule }
             var entries = try package.generate(modules: modules).entries
+            entries.removeAll(where: { $0.source.elements.isEmpty })
             entries.append(commonLib)
 
             for entry in entries {
