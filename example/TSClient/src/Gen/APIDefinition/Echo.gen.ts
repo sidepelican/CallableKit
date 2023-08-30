@@ -6,7 +6,16 @@ import {
     TagRecord,
     identity
 } from "../common.gen.js";
-import { Student } from "./Entity/Student.gen.js";
+import {
+    Student,
+    Student2,
+    Student3,
+    Student3_JSON,
+    Student3_decode,
+    Student4,
+    Student4_JSON,
+    Student4_decode
+} from "./Entity/Student.gen.js";
 import { User } from "./Entity/User.gen.js";
 
 export interface IEchoClient {
@@ -16,6 +25,9 @@ export interface IEchoClient {
     testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response>;
     emptyRequestAndResponse(): Promise<void>;
     testTypeAliasToRawRepr(request: Student): Promise<Student>;
+    testRawRepr(request: Student2): Promise<Student2>;
+    testRawRepr2(request: Student3): Promise<Student3>;
+    testRawRepr3(request: Student4): Promise<Student4>;
 }
 
 export const bindEcho = (stub: IStubClient): IEchoClient => {
@@ -39,6 +51,17 @@ export const bindEcho = (stub: IStubClient): IEchoClient => {
         },
         async testTypeAliasToRawRepr(request: Student): Promise<Student> {
             return await stub.send(request, "Echo/testTypeAliasToRawRepr") as Student;
+        },
+        async testRawRepr(request: Student2): Promise<Student2> {
+            return await stub.send(request, "Echo/testRawRepr") as Student2;
+        },
+        async testRawRepr2(request: Student3): Promise<Student3> {
+            const json = await stub.send(request, "Echo/testRawRepr2") as Student3_JSON;
+            return Student3_decode(json);
+        },
+        async testRawRepr3(request: Student4): Promise<Student4> {
+            const json = await stub.send(request, "Echo/testRawRepr3") as Student4_JSON;
+            return Student4_decode(json);
         }
     };
 };

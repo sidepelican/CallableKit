@@ -165,23 +165,18 @@ struct GenerateTSClient {
                     let orgStype = stype
                     var stype = stype
                     var updated = false
-                    while let `struct` = stype.asStruct,
-                          `struct`.nominalTypeDecl.inheritedTypes.contains(where: { (t) in t.description == "RawRepresentable" }) == true {
-                        if let rawValueDecl = `struct`.decl.properties.first(where: { $0.name == "rawValue" }) {
+                    while let `struct` = stype.asStruct?.decl,
+                          `struct`.inheritedTypes.contains(where: { (t) in t.asProtocol?.name == "RawRepresentable" }) {
+                        if let rawValueDecl = `struct`.properties.first(where: { $0.name == "rawValue" }) {
                             stype = rawValueDecl.typeRepr.resolve(from: rawValueDecl.context)
                             updated = true
-                        } else if let rawValueTypeAlias = `struct`.decl.findType(name: "RawValue")?.asTypeAlias {
-                            stype = rawValueTypeAlias.underlyingTypeRepr.resolve(from: rawValueTypeAlias.context)
+                        } else if let rawValueAlias = `struct`.findType(name: "RawValue")?.asTypeAlias {
+                            stype = rawValueAlias.underlyingTypeRepr.resolve(from: rawValueAlias.context)
                             updated = true
                         }
                     }
-                    if updated,
-                       let name = stype.toTypeRepr(containsModule: false).asIdent?.elements.last?.name {
-                        if let entry = typeMap.table[name] {
-                            return RawRepresentableConverter(generator: generator, swiftType: orgStype, lastEntry: entry)
-                        } else {
-                            return RawRepresentableConverter(generator: generator, swiftType: orgStype, lastEntry: .identity(name: name))
-                        }
+                    if updated {
+                        return try? RawRepresentableConverter(generator: generator, swiftType: orgStype, rawValueType: stype)
                     }
                     return nil
                 }),
@@ -221,53 +216,92 @@ struct GenerateTSClient {
 struct RawRepresentableConverter: TypeConverter {
     var generator: CodeGenerator
     var swiftType: any SType
-    var lastEntry: TypeMap.Entry
+    var rawValueType: any SType
+    var rawValueTypeConverter: any TypeConverter
+
+    init(
+        generator: CodeGenerator,
+        swiftType: any SType,
+        rawValueType raw: any SType
+    ) throws {
+        let map = swiftType.contextSubstitutionMap()
+        let raw = raw.subst(map: map)
+
+        self.generator = generator
+        self.swiftType = swiftType
+        self.rawValueType = raw
+        self.rawValueTypeConverter = try generator.converter(for: raw)
+    }
 
     func typeDecl(for target: GenerationTarget) throws -> TSTypeDecl? {
-        guard case .entity = target else {
-            return nil
-        }
-
-        let name = try name(for: target)
+        let name = try self.name(for: target)
         let genericParams: [TSTypeParameterNode] = try self.genericParams().map {
             .init(try $0.name(for: target))
         }
+        switch target {
+        case .entity:
+            let type = try rawValueTypeConverter.type(for: target)
 
-        return TSTypeDecl(
-            modifiers: [.export],
-            name: name,
-            genericParams: genericParams,
-            type: TSIntersectionType([
-                TSIdentType(lastEntry.entityType),
-                try generator.tagRecord(
-                    name: name,
-                    genericArgs: genericParams.map { TSIdentType($0.name) }
-                ),
-            ])
-        )
-    }
+            let tag = try generator.tagRecord(
+                name: name,
+                genericArgs: try self.genericParams().map { (param) in
+                    TSIdentType(try param.name(for: .entity))
+                }
+            )
 
-    func hasDecode() throws -> Bool {
-        false
+            return TSTypeDecl(
+                modifiers: [.export],
+                name: name,
+                genericParams: genericParams,
+                type: TSIntersectionType([type, tag])
+            )
+        case .json:
+            guard try rawValueTypeConverter.hasEncode() || rawValueTypeConverter.hasDecode() else {
+                return nil
+            }
+
+            return TSTypeDecl(
+                modifiers: [.export],
+                name: name,
+                genericParams: genericParams,
+                type: try rawValueTypeConverter.type(for: target)
+            )
+        }
     }
 
     func decodePresence() throws -> CodecPresence {
-        .identity
+        try generator.converter(for: rawValueType).decodePresence()
     }
     
     func decodeDecl() throws -> TSFunctionDecl? {
-        nil
-    }
+        guard let decl = try decodeSignature() else { return nil }
 
-    func hasEncode() throws -> Bool {
-        false
+        let value = try rawValueTypeConverter.callDecode(json: TSIdentExpr("json"))
+        decl.body.elements.append(
+            TSReturnStmt(
+                TSAsExpr(value, try type(for: .entity))
+            )
+        )
+
+        return decl
     }
 
     func encodePresence() throws -> CodecPresence {
-        .identity
+        try generator.converter(for: rawValueType).encodePresence()
     }
     
     func encodeDecl() throws -> TSFunctionDecl? {
-        nil
+        guard let decl = try encodeSignature() else { return nil }
+
+        let field = try rawValueTypeConverter.callEncodeField(
+            entity: TSIdentExpr("entity")
+        )
+        let value = try rawValueTypeConverter.fieldToValue(field: field, for: .json)
+
+        decl.body.elements.append(
+            TSReturnStmt(value)
+        )
+
+        return decl
     }
 }

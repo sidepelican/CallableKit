@@ -59,6 +59,33 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
         }
 
         do {
+            let student: Student2 = .init(
+                id: Student2.ID(rawValue: .init(rawValue: "0002")),
+                name: "taro"
+            )
+            let res = try await client.echo.testRawRepr(request: student)
+            dump(res)
+        }
+
+        do {
+            let student: Student3 = .init(
+                id: Student3.ID(rawValue: .id("0003")),
+                name: "taro"
+            )
+            let res = try await client.echo.testRawRepr2(request: student)
+            dump(res)
+        }
+
+        do {
+            let student: Student4 = .init(
+                id: Student4.ID(rawValue: .init(rawValue: .id("0004"))),
+                name: "taro"
+            )
+            let res = try await client.echo.testRawRepr3(request: student)
+            dump(res)
+        }
+
+        do {
             let res = try await client.account.signin(request: .init(
                 email: "example@example.com",
                 password: "password"

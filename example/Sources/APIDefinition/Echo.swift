@@ -12,6 +12,9 @@ public protocol EchoServiceProtocol {
     func emptyRequestAndResponse() async throws
 
     func testTypeAliasToRawRepr(request: Student) async throws -> Student
+    func testRawRepr(request: Student2) async throws -> Student2
+    func testRawRepr2(request: Student3) async throws -> Student3
+    func testRawRepr3(request: Student4) async throws -> Student4
 }
 
 public struct EchoHelloRequest: Codable, Sendable {

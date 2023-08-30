@@ -6,10 +6,23 @@ public struct GenericID<T>: Codable & RawRepresentable & Sendable {
     public var rawValue: String
 }
 
-public struct GenericID2<_IDSpecifier, RawValue: Sendable & Hashable & Codable>: RawRepresentable, Sendable, Hashable, Codable {
-    public var rawValue: RawValue { id }
-
+public struct GenericID2<_IDSpecifier, RawValue: Sendable & Codable>: RawRepresentable, Sendable, Codable {
     public init(rawValue: RawValue) {
         self.rawValue = rawValue
     }
+
+    public var rawValue: RawValue
+}
+
+public enum MyValue: Codable, Sendable {
+    case id(String)
+    case none
+}
+
+public struct GenericID3<T>: Codable & RawRepresentable & Sendable {
+    public init(rawValue: MyValue) {
+        self.rawValue = rawValue
+    }
+
+    public var rawValue: MyValue
 }
