@@ -162,22 +162,23 @@ struct GenerateTSClient {
             let package = PackageGenerator(
                 context: input.context,
                 typeConverterProvider: TypeConverterProvider(typeMap: typeMap, customProvider: { (generator, stype) in
-                    let orgStype = stype
-                    var stype = stype
-                    var updated = false
-                    while let `struct` = stype.asStruct?.decl,
-                          `struct`.inheritedTypes.contains(where: { (t) in t.asProtocol?.name == "RawRepresentable" }) {
-                        if let rawValueDecl = `struct`.properties.first(where: { $0.name == "rawValue" }) {
-                            stype = rawValueDecl.typeRepr.resolve(from: rawValueDecl.context)
-                            updated = true
-                        } else if let rawValueAlias = `struct`.findType(name: "RawValue")?.asTypeAlias {
-                            stype = rawValueAlias.underlyingTypeRepr.resolve(from: rawValueAlias.context)
-                            updated = true
+                    if let `struct` = stype.asStruct?.decl {
+                        guard `struct`.inheritedTypes.contains(where: { (t) in t.asProtocol?.name == "RawRepresentable" }) else {
+                            return nil
                         }
+
+                        let rawValueType: (any SType)?
+                        if let alias = `struct`.findType(name: "RawValue")?.asTypeAlias {
+                            rawValueType = alias.underlyingType
+                        } else if let property = `struct`.find(name: "rawValue")?.asVar {
+                            rawValueType = property.interfaceType
+                        } else {
+                            rawValueType = nil
+                        }
+                        guard let rawValueType else { return nil }
+                        return try? FlatRawRepresentableConverter(generator: generator, swiftType: stype, rawValueType: rawValueType)
                     }
-                    if updated {
-                        return try? RawRepresentableConverter(generator: generator, swiftType: orgStype, rawValueType: stype)
-                    }
+
                     return nil
                 }),
                 symbols: symbols,
@@ -213,35 +214,52 @@ struct GenerateTSClient {
     }
 }
 
-struct RawRepresentableConverter: TypeConverter {
-    var generator: CodeGenerator
-    var swiftType: any SType
-    var rawValueType: any SType
-    var rawValueTypeConverter: any TypeConverter
-
+struct FlatRawRepresentableConverter: TypeConverter {
     init(
         generator: CodeGenerator,
         swiftType: any SType,
         rawValueType raw: any SType
     ) throws {
         let map = swiftType.contextSubstitutionMap()
-        let raw = raw.subst(map: map)
+        let substituted = raw.subst(map: map)
 
         self.generator = generator
         self.swiftType = swiftType
-        self.rawValueType = raw
-        self.rawValueTypeConverter = try generator.converter(for: raw)
+        self.rawValueType = try generator.converter(for: substituted)
+
+        self.doesRawRepresentableCoding = substituted.isRawRepresentableCodingType()
+        let rawValueIsArchetype = raw.asGenericParam.map {
+            map.signature.params.contains($0)
+        } ?? false
+        self.needsSpecialize = rawValueIsArchetype
     }
+
+    var generator: CodeGenerator
+    var swiftType: any SType
+    var rawValueType: any TypeConverter
+    var doesRawRepresentableCoding: Bool
+    var needsSpecialize: Bool
+
+//    func type(for target: GenerationTarget) throws -> any TSType {
+//        if case .json = target, needsSpecialize {
+//            return TSUnionType([
+////                try generator.converter(for: rawValueType.swiftType).type(for: target),
+//                try `default`.type(for: target),
+////                TSCustomType(text: "never /*  */"),
+//            ])
+//        }
+//
+//        return try `default`.type(for: target)
+//    }
 
     func typeDecl(for target: GenerationTarget) throws -> TSTypeDecl? {
         let name = try self.name(for: target)
         let genericParams: [TSTypeParameterNode] = try self.genericParams().map {
             .init(try $0.name(for: target))
         }
+        let type = try rawValueType.type(for: target)
         switch target {
         case .entity:
-            let type = try rawValueTypeConverter.type(for: target)
-
             let tag = try generator.tagRecord(
                 name: name,
                 genericArgs: try self.genericParams().map { (param) in
@@ -256,52 +274,81 @@ struct RawRepresentableConverter: TypeConverter {
                 type: TSIntersectionType([type, tag])
             )
         case .json:
-            guard try rawValueTypeConverter.hasEncode() || rawValueTypeConverter.hasDecode() else {
+            if doesRawRepresentableCoding {
                 return nil
             }
-
             return TSTypeDecl(
                 modifiers: [.export],
                 name: name,
                 genericParams: genericParams,
-                type: try rawValueTypeConverter.type(for: target)
+                type: TSObjectType([
+                    .field(.init(name: "rawValue", type: type))
+                ])
             )
         }
     }
 
     func decodePresence() throws -> CodecPresence {
-        try generator.converter(for: rawValueType).decodePresence()
+        return doesRawRepresentableCoding ? .identity : .required
     }
-    
+
     func decodeDecl() throws -> TSFunctionDecl? {
         guard let decl = try decodeSignature() else { return nil }
+        assert(!doesRawRepresentableCoding)
 
-        let value = try rawValueTypeConverter.callDecode(json: TSIdentExpr("json"))
+        let value = try rawValueType.callDecode(json: TSMemberExpr(base: TSIdentExpr("json"), name: "rawValue"))
+        let field = try rawValueType.valueToField(value: value, for: .entity)
+
         decl.body.elements.append(
-            TSReturnStmt(
-                TSAsExpr(value, try type(for: .entity))
-            )
+            TSReturnStmt(TSAsExpr(field, try type(for: .entity)))
         )
-
         return decl
+    }
+
+    func callDecode(json: any TSExpr) throws -> any TSExpr {
+        if needsSpecialize {
+            let value: any TSExpr
+            if doesRawRepresentableCoding {
+                value = try rawValueType.callDecodeField(json: json)
+            } else {
+                value = try rawValueType.callDecodeField(json: TSMemberExpr(base: TSIdentExpr("json"), name: "rawValue"))
+            }
+            let field = try rawValueType.valueToField(value: value, for: .entity)
+            return field
+        }
+        return try `default`.callDecode(json: json)
     }
 
     func encodePresence() throws -> CodecPresence {
-        try generator.converter(for: rawValueType).encodePresence()
+        return doesRawRepresentableCoding ? .identity : .required
     }
-    
+
     func encodeDecl() throws -> TSFunctionDecl? {
         guard let decl = try encodeSignature() else { return nil }
+        assert(!doesRawRepresentableCoding)
 
-        let field = try rawValueTypeConverter.callEncodeField(
-            entity: TSIdentExpr("entity")
-        )
-        let value = try rawValueTypeConverter.fieldToValue(field: field, for: .json)
-
+        let field = try rawValueType.callEncodeField(entity: TSIdentExpr("entity"))
+        let value = try rawValueType.fieldToValue(field: field, for: .json)
         decl.body.elements.append(
-            TSReturnStmt(value)
+            TSReturnStmt(TSObjectExpr([
+                .named(name: "rawValue", value: value),
+            ]))
         )
-
         return decl
+    }
+
+    func callEncode(entity: any TSExpr) throws -> TSExpr {
+        if needsSpecialize {
+            let field = try rawValueType.callEncodeField(entity: entity)
+            let value = try rawValueType.fieldToValue(field: field, for: .json)
+            if doesRawRepresentableCoding {
+                return value
+            } else {
+                return TSObjectExpr([
+                    .named(name: "rawValue", value: value),
+                ])
+            }
+        }
+        return try `default`.callEncode(entity: entity)
     }
 }

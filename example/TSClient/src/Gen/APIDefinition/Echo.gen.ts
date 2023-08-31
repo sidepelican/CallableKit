@@ -9,12 +9,17 @@ import {
 import {
     Student,
     Student2,
+    Student2_JSON,
+    Student2_decode,
+    Student2_encode,
     Student3,
     Student3_JSON,
     Student3_decode,
+    Student3_encode,
     Student4,
     Student4_JSON,
-    Student4_decode
+    Student4_decode,
+    Student4_encode
 } from "./Entity/Student.gen.js";
 import { User } from "./Entity/User.gen.js";
 
@@ -53,14 +58,15 @@ export const bindEcho = (stub: IStubClient): IEchoClient => {
             return await stub.send(request, "Echo/testTypeAliasToRawRepr") as Student;
         },
         async testRawRepr(request: Student2): Promise<Student2> {
-            return await stub.send(request, "Echo/testRawRepr") as Student2;
+            const json = await stub.send(Student2_encode(request), "Echo/testRawRepr") as Student2_JSON;
+            return Student2_decode(json);
         },
         async testRawRepr2(request: Student3): Promise<Student3> {
-            const json = await stub.send(request, "Echo/testRawRepr2") as Student3_JSON;
+            const json = await stub.send(Student3_encode(request), "Echo/testRawRepr2") as Student3_JSON;
             return Student3_decode(json);
         },
         async testRawRepr3(request: Student4): Promise<Student4> {
-            const json = await stub.send(request, "Echo/testRawRepr3") as Student4_JSON;
+            const json = await stub.send(Student4_encode(request), "Echo/testRawRepr3") as Student4_JSON;
             return Student4_decode(json);
         }
     };

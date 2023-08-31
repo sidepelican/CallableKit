@@ -20,9 +20,9 @@ public enum MyValue: Codable, Sendable {
 }
 
 public struct GenericID3<T>: Codable & RawRepresentable & Sendable {
-    public init(rawValue: MyValue) {
+    public init(rawValue: RawValue) {
         self.rawValue = rawValue
     }
-
-    public var rawValue: MyValue
+    public typealias RawValue = MyValue
+    public var rawValue: RawValue
 }
