@@ -240,18 +240,6 @@ struct FlatRawRepresentableConverter: TypeConverter {
     var doesRawRepresentableCoding: Bool
     var needsSpecialize: Bool
 
-//    func type(for target: GenerationTarget) throws -> any TSType {
-//        if case .json = target, needsSpecialize {
-//            return TSUnionType([
-////                try generator.converter(for: rawValueType.swiftType).type(for: target),
-//                try `default`.type(for: target),
-////                TSCustomType(text: "never /*  */"),
-//            ])
-//        }
-//
-//        return try `default`.type(for: target)
-//    }
-
     func typeDecl(for target: GenerationTarget) throws -> TSTypeDecl? {
         let name = try self.name(for: target)
         let genericParams: [TSTypeParameterNode] = try self.genericParams().map {
