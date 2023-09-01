@@ -52,7 +52,7 @@ export type Student2_ID = GenericID2<Student2, GenericID<Student2>>;
 export type Student2_ID_JSON = GenericID2_JSON<Student2_JSON, GenericID<Student2_JSON>>;
 
 export function Student2_ID_decode(json: Student2_ID_JSON): Student2_ID {
-    return json.rawValue as GenericID<Student2>;
+    return json.rawValue as GenericID<Student2> as GenericID2<Student2, GenericID<Student2>>;
 }
 
 export function Student2_ID_encode(entity: Student2_ID): Student2_ID_JSON {
@@ -134,7 +134,7 @@ export type Student4_ID = GenericID2<Student4, GenericID2<Student4, MyValue>>;
 export type Student4_ID_JSON = GenericID2_JSON<Student4_JSON, GenericID2_JSON<Student4_JSON, MyValue_JSON>>;
 
 export function Student4_ID_decode(json: Student4_ID_JSON): Student4_ID {
-    return MyValue_decode(json.rawValue);
+    return MyValue_decode(json.rawValue.rawValue) as GenericID2<Student4, MyValue> as GenericID2<Student4, GenericID2<Student4, MyValue>>;
 }
 
 export function Student4_ID_encode(entity: Student4_ID): Student4_ID_JSON {

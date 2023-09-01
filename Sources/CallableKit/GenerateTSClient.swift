@@ -307,14 +307,10 @@ struct FlatRawRepresentableConverter: TypeConverter {
 
     func callDecode(json: any TSExpr) throws -> any TSExpr {
         if needsSpecialize {
-            let value: any TSExpr
-            if doesRawRepresentableCoding {
-                value = try rawValueType.callDecodeField(json: json)
-            } else {
-                value = try rawValueType.callDecodeField(json: TSMemberExpr(base: TSIdentExpr("json"), name: "rawValue"))
-            }
+            let rawValue = doesRawRepresentableCoding ? json : TSMemberExpr(base: json, name: "rawValue")
+            let value = try rawValueType.callDecodeField(json: rawValue)
             let field = try rawValueType.valueToField(value: value, for: .entity)
-            return field
+            return TSAsExpr(field, try type(for: .entity))
         }
         return try `default`.callDecode(json: json)
     }
