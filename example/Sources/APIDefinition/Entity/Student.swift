@@ -10,7 +10,7 @@ public struct Student: Codable, Sendable {
 }
 
 public struct Student2: Codable, Sendable {
-    public typealias ID = GenericID2<Student2, GenericID<Student2>>
+    public typealias ID = GenericID2<Student2, String>
 
     public init(id: ID, name: String) {
         self.id = id

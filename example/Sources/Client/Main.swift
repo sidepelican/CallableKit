@@ -60,7 +60,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
 
         do {
             let student: Student2 = .init(
-                id: Student2.ID(rawValue: .init(rawValue: "0002")),
+                id: Student2.ID(rawValue: "0002"),
                 name: "taro"
             )
             let res = try await client.echo.testRawRepr(request: student)

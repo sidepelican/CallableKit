@@ -1,8 +1,10 @@
-import { TagRecord } from "../../common.gen.js";
+import { TagRecord, identity } from "../../common.gen.js";
 import {
     GenericID,
     GenericID2,
     GenericID2_JSON,
+    GenericID2_decode,
+    GenericID2_encode,
     GenericID3,
     GenericID3_JSON,
     GenericID3_decode,
@@ -47,18 +49,26 @@ export function Student2_encode(entity: Student2): Student2_JSON {
     };
 }
 
-export type Student2_ID = GenericID2<Student2, GenericID<Student2>>;
+export type Student2_ID = GenericID2<Student2, string>;
 
-export type Student2_ID_JSON = GenericID2_JSON<Student2_JSON, GenericID<Student2_JSON>>;
+export type Student2_ID_JSON = GenericID2_JSON<Student2_JSON, string>;
 
 export function Student2_ID_decode(json: Student2_ID_JSON): Student2_ID {
-    return json.rawValue as GenericID<Student2> as GenericID2<Student2, GenericID<Student2>>;
+    return GenericID2_decode<
+        Student2,
+        Student2_JSON,
+        string,
+        string
+    >(json, Student2_decode, identity);
 }
 
 export function Student2_ID_encode(entity: Student2_ID): Student2_ID_JSON {
-    return {
-        rawValue: entity as GenericID<Student2_JSON>
-    };
+    return GenericID2_encode<
+        Student2,
+        Student2_JSON,
+        string,
+        string
+    >(entity, Student2_encode, identity);
 }
 
 export type Student3 = {
@@ -134,13 +144,33 @@ export type Student4_ID = GenericID2<Student4, GenericID2<Student4, MyValue>>;
 export type Student4_ID_JSON = GenericID2_JSON<Student4_JSON, GenericID2_JSON<Student4_JSON, MyValue_JSON>>;
 
 export function Student4_ID_decode(json: Student4_ID_JSON): Student4_ID {
-    return MyValue_decode(json.rawValue.rawValue) as GenericID2<Student4, MyValue> as GenericID2<Student4, GenericID2<Student4, MyValue>>;
+    return GenericID2_decode<
+        Student4,
+        Student4_JSON,
+        GenericID2<Student4, MyValue>,
+        GenericID2_JSON<Student4_JSON, MyValue_JSON>
+    >(json, Student4_decode, (json: GenericID2_JSON<Student4_JSON, MyValue_JSON>): GenericID2<Student4, MyValue> => {
+        return GenericID2_decode<
+            Student4,
+            Student4_JSON,
+            MyValue,
+            MyValue_JSON
+        >(json, Student4_decode, MyValue_decode);
+    });
 }
 
 export function Student4_ID_encode(entity: Student4_ID): Student4_ID_JSON {
-    return {
-        rawValue: {
-            rawValue: entity as MyValue_JSON
-        }
-    };
+    return GenericID2_encode<
+        Student4,
+        Student4_JSON,
+        GenericID2<Student4, MyValue>,
+        GenericID2_JSON<Student4_JSON, MyValue_JSON>
+    >(entity, Student4_encode, (entity: GenericID2<Student4, MyValue>): GenericID2_JSON<Student4_JSON, MyValue_JSON> => {
+        return GenericID2_encode<
+            Student4,
+            Student4_JSON,
+            MyValue,
+            MyValue_JSON
+        >(entity, Student4_encode, identity);
+    });
 }

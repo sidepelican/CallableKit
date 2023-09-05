@@ -227,18 +227,13 @@ struct FlatRawRepresentableConverter: TypeConverter {
         self.swiftType = swiftType
         self.rawValueType = try generator.converter(for: substituted)
 
-        self.doesRawRepresentableCoding = substituted.isRawRepresentableCodingType()
-        let rawValueIsArchetype = raw.asGenericParam.map {
-            map.signature.params.contains($0)
-        } ?? false
-        self.needsSpecialize = rawValueIsArchetype
+        self.doesRawRepresentableCoding = raw.isRawRepresentableCodingType()
     }
 
     var generator: CodeGenerator
     var swiftType: any SType
     var rawValueType: any TypeConverter
     var doesRawRepresentableCoding: Bool
-    var needsSpecialize: Bool
 
     func typeDecl(for target: GenerationTarget) throws -> TSTypeDecl? {
         let name = try self.name(for: target)
@@ -293,16 +288,6 @@ struct FlatRawRepresentableConverter: TypeConverter {
         return decl
     }
 
-    func callDecode(json: any TSExpr) throws -> any TSExpr {
-        if needsSpecialize {
-            let rawValue = doesRawRepresentableCoding ? json : TSMemberExpr(base: json, name: "rawValue")
-            let value = try rawValueType.callDecodeField(json: rawValue)
-            let field = try rawValueType.valueToField(value: value, for: .entity)
-            return TSAsExpr(field, try type(for: .entity))
-        }
-        return try `default`.callDecode(json: json)
-    }
-
     func encodePresence() throws -> CodecPresence {
         return doesRawRepresentableCoding ? .identity : .required
     }
@@ -319,20 +304,5 @@ struct FlatRawRepresentableConverter: TypeConverter {
             ]))
         )
         return decl
-    }
-
-    func callEncode(entity: any TSExpr) throws -> TSExpr {
-        if needsSpecialize {
-            let field = try rawValueType.callEncodeField(entity: entity)
-            let value = try rawValueType.fieldToValue(field: field, for: .json)
-            if doesRawRepresentableCoding {
-                return value
-            } else {
-                return TSObjectExpr([
-                    .named(name: "rawValue", value: value),
-                ])
-            }
-        }
-        return try `default`.callEncode(entity: entity)
     }
 }
