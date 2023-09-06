@@ -30,4 +30,16 @@ struct EchoService: EchoServiceProtocol {
     func testTypeAliasToRawRepr(request: Student) async throws -> Student {
         return request
     }
+
+    func testRawRepr(request: Student2) async throws -> Student2 {
+        return request
+    }
+
+    func testRawRepr2(request: Student3) async throws -> Student3 {
+        return request
+    }
+
+    func testRawRepr3(request: Student4) async throws -> Student4 {
+        return request
+    }
 }

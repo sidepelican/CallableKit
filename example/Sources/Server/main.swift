@@ -5,8 +5,10 @@ let app = Application()
 defer { app.shutdown() }
 
 app.logger.logLevel = .error
+let logger = app.logger
 
 let myErrorMiddleware = ErrorMiddleware { _, error in
+    logger.error("\(error)")
     struct ErrorFrame: Encodable {
         var errorMessage: String
     }

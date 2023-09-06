@@ -1,6 +1,6 @@
 import { bindAccount } from "./Gen/APIDefinition/Account.gen.js";
 import { bindEcho } from "./Gen/APIDefinition/Echo.gen.js";
-import { Student, Student_IDz } from "./Gen/APIDefinition/Entity/Student.gen.js";
+import { Student, Student2, Student3, Student4 } from "./Gen/APIDefinition/Entity/Student.gen.js";
 import { User_ID } from "./Gen/APIDefinition/Entity/User.gen.js";
 import { createStubClient } from "./Gen/CallableKit.gen.js";
 
@@ -20,7 +20,7 @@ async function main() {
   }
 
   {
-    const id = { rawValue: "id" } as User_ID;
+    const id = "id" as User_ID;
     const res = await echoClient.testTypicalEntity({ id, name: "name" });
     console.log(JSON.stringify(res));
   }
@@ -45,10 +45,37 @@ async function main() {
 
   {
     const student: Student = {
-      id: { rawValue: "0001" } as Student_IDz,
+      id: "0001",
       name: "taro"
     }
     const res = await echoClient.testTypeAliasToRawRepr(student);
+    console.log(JSON.stringify(res));
+  }
+
+  {
+    const student: Student2 = {
+      id: "0002",
+      name: "taro"
+    }
+    const res = await echoClient.testRawRepr(student);
+    console.log(JSON.stringify(res));
+  }
+
+  {
+    const student: Student3 = {
+      id: { kind: "id", id: { _0: "0003" }},
+      name: "taro"
+    }
+    const res = await echoClient.testRawRepr2(student);
+    console.log(JSON.stringify(res));
+  }
+
+  {
+    const student: Student4 = {
+      id: { kind: "id", id: { _0: "0004" }},
+      name: "taro"
+    }
+    const res = await echoClient.testRawRepr3(student);
     console.log(JSON.stringify(res));
   }
 

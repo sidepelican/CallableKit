@@ -24,104 +24,6 @@ struct GenerateTSClient {
         return TypeMap(table: typeMapTable)
     }()
 
-    private func generateCommon() -> TSSourceFile {
-        let string = TSIdentType.string
-        var elements: [any ASTNode] = [
-            TSInterfaceDecl(modifiers: [.export], name: "IStubClient", body: TSBlockStmt([
-                TSMethodDecl(
-                    name: "send", params: [
-                        .init(name: "request", type: TSIdentType.unknown),
-                        .init(name: "servicePath", type: TSIdentType.string)
-                    ],
-                    result: TSIdentType.promise(TSIdentType.unknown)
-                )
-            ])),
-            TSTypeDecl(modifiers: [.export], name: "Headers", type: TSIdentType("Record", genericArgs: [string, string])),
-            TSTypeDecl(modifiers: [.export], name: "StubClientOptions", type: TSObjectType([
-                .field(TSFieldDecl(name: "headers", isOptional: true, type: TSFunctionType(params: [], result: TSUnionType([
-                    TSIdentType("Headers"),
-                    TSIdentType("Promise", genericArgs: [TSIdentType("Headers")]),
-                ])))),
-                .field(TSFieldDecl(name: "mapResponseError", isOptional: true, type: TSFunctionType(params: [.init(name: "e", type: TSIdentType("FetchHTTPStubResponseError"))], result: TSIdentType.error))),
-            ])),
-            TSClassDecl(modifiers: [.export], name: "FetchHTTPStubResponseError", extends: TSIdentType("Error"), body: TSBlockStmt([
-                TSFieldDecl(modifiers: [.readonly], name: "path", type: string),
-                TSFieldDecl(modifiers: [.readonly], name: "response", type: TSIdentType("Response")),
-                TSMethodDecl(name: "constructor", params: [.init(name: "path", type: string), .init(name: "response", type: TSIdentType("Response"))], body: TSBlockStmt([
-                    TSCallExpr(callee: TSIdentExpr("super"), args: [TSTemplateLiteralExpr("ResponseError. path=\(ident: "path"), status=\(TSMemberExpr(base: TSIdentExpr("response"), name: "status"))")]),
-                    TSAssignExpr(TSMemberExpr(base: TSIdentExpr.this, name: "path"), TSIdentExpr("path")),
-                    TSAssignExpr(TSMemberExpr(base: TSIdentExpr.this, name: "response"), TSIdentExpr("response")),
-                ])),
-            ])),
-            TSVarDecl(
-                modifiers: [.export],
-                kind: .const,
-                name: "createStubClient",
-                initializer: TSClosureExpr(
-                    params: [
-                        .init(name: "baseURL", type: string),
-                        .init(name: "options", isOptional: true, type: TSIdentType("StubClientOptions")),
-                    ],
-                    result: TSIdentType("IStubClient"),
-                    body: TSBlockStmt([
-                        TSReturnStmt(TSObjectExpr([
-                            .method(TSMethodDecl(modifiers: [.async], name: "send", params: [.init(name: "request"), .init(name: "servicePath")], body: TSBlockStmt([
-                                TSVarDecl(kind: .let, name: "optionHeaders", type: TSIdentType("Headers"), initializer: TSObjectExpr([])),
-                                TSIfStmt(condition: TSMemberExpr(base: TSIdentExpr("options"), isOptional: true, name: "headers"), then: TSBlockStmt([
-                                    TSAssignExpr(
-                                        TSIdentExpr("optionHeaders"),
-                                        TSAwaitExpr(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("options"), name: "headers"), args: []))
-                                    ),
-                                ])),
-
-                                TSVarDecl(kind: .const, name: "res", initializer: TSAwaitExpr(TSCallExpr(callee: TSIdentExpr("fetch"), args: [
-                                    TSCallExpr(callee: TSMemberExpr(
-                                        base: TSNewExpr(callee: TSIdentType("URL"), args: [
-                                            TSIdentExpr("servicePath"),
-                                            TSIdentExpr("baseURL"),
-                                        ]),
-                                        name: "toString"
-                                    ), args: []),
-                                    TSObjectExpr([
-                                        .named(name: "method", value: TSStringLiteralExpr("POST")),
-                                        .named(name: "headers", value: TSObjectExpr([
-                                            .named(name: "Content-Type", value: TSStringLiteralExpr("application/json")),
-                                            .destructuring(value: TSIdentExpr("optionHeaders")),
-                                        ])),
-                                        .named(name: "body", value: TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("JSON"), name: "stringify"), args: [TSIdentExpr("request")])),
-                                    ]),
-                                ]))),
-                                TSIfStmt(condition: TSPrefixOperatorExpr("!", TSMemberExpr(base: TSIdentExpr("res"), name: "ok")), then: TSBlockStmt([
-                                    TSVarDecl(kind: .const, name: "e", initializer: TSNewExpr(callee: TSIdentType("FetchHTTPStubResponseError"), args: [
-                                        TSIdentExpr("servicePath"),
-                                        TSIdentExpr("res"),
-                                    ])),
-                                    TSIfStmt(
-                                        condition: TSMemberExpr(base: TSIdentExpr("options"), isOptional: true, name: "mapResponseError"),
-                                        then: TSBlockStmt([
-                                            TSThrowStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("options"), name: "mapResponseError"), args: [TSIdentExpr("e")])),
-                                        ]),
-                                        else: TSBlockStmt([
-                                            TSThrowStmt(TSIdentExpr("e")),
-                                        ])
-                                    ),
-                                ])),
-                                TSReturnStmt(TSAwaitExpr(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("res"), name: "json"), args: []))),
-                            ])))
-                        ]))
-                    ])
-                )
-            )
-        ]
-
-        elements += [
-            DateConvertDecls.encodeDecl(),
-            DateConvertDecls.decodeDecl(),
-        ]
-
-        return TSSourceFile(elements)
-    }
-
     private func processFile(
         generator: CodeGenerator,
         swift: SourceFile,
@@ -259,7 +161,13 @@ struct GenerateTSClient {
 
             let package = PackageGenerator(
                 context: input.context,
-                typeConverterProvider: TypeConverterProvider(typeMap: typeMap),
+                typeConverterProvider: TypeConverterProvider(typeMap: typeMap, customProvider: { (generator, stype) in
+                    if let rawValueType = stype.asStruct?.rawValueType(requiresTransferringRawValueType: false) {
+                        return try? FlatRawRepresentableConverter(generator: generator, swiftType: stype, rawValueType: rawValueType)
+                    }
+
+                    return nil
+                }),
                 symbols: symbols,
                 importFileExtension: nextjs ? .none : .js,
                 outputDirectory: dstDirectory,
@@ -276,6 +184,7 @@ struct GenerateTSClient {
             var modules = input.context.modules
             modules.removeAll { $0 === input.context.swiftModule }
             var entries = try package.generate(modules: modules).entries
+            entries.removeAll(where: { $0.source.elements.isEmpty })
             entries.append(commonLib)
 
             for entry in entries {
@@ -292,26 +201,91 @@ struct GenerateTSClient {
     }
 }
 
-fileprivate enum DateConvertDecls {
-    static func decodeDecl() -> TSFunctionDecl {
-        TSFunctionDecl(
-            modifiers: [.export],
-            name: "Date_decode",
-            params: [ .init(name: "unixMilli", type: TSIdentType("number"))],
-            body: TSBlockStmt([
-                TSReturnStmt(TSNewExpr(callee: TSIdentType("Date"), args: [TSIdentExpr("unixMilli")]))
-            ])
-        )
+struct FlatRawRepresentableConverter: TypeConverter {
+    init(
+        generator: CodeGenerator,
+        swiftType: any SType,
+        rawValueType substituted: any SType
+    ) throws {
+        self.generator = generator
+        self.swiftType = swiftType
+        self.rawValueType = try generator.converter(for: substituted)
+        self.isTransferringRawValueType = swiftType.asStruct?.rawValueType(requiresTransferringRawValueType: true) != nil
     }
 
-    static func encodeDecl() -> TSFunctionDecl {
-        TSFunctionDecl(
-            modifiers: [.export],
-            name: "Date_encode",
-            params: [.init(name: "d", type: TSIdentType("Date"))],
-            body: TSBlockStmt([
-                TSReturnStmt(TSCallExpr(callee: TSMemberExpr(base: TSIdentExpr("d"), name: "getTime"), args: []))
-            ])
+    var generator: CodeGenerator
+    var swiftType: any SType
+    var rawValueType: any TypeConverter
+    var isTransferringRawValueType: Bool
+
+    func typeDecl(for target: GenerationTarget) throws -> TSTypeDecl? {
+        let name = try self.name(for: target)
+        let genericParams: [TSTypeParameterNode] = try self.genericParams().map {
+            .init(try $0.name(for: target))
+        }
+        let type = try rawValueType.type(for: target)
+        switch target {
+        case .entity:
+            let tag = try generator.tagRecord(
+                name: name,
+                genericArgs: try self.genericParams().map { (param) in
+                    TSIdentType(try param.name(for: .entity))
+                }
+            )
+
+            return TSTypeDecl(
+                modifiers: [.export],
+                name: name,
+                genericParams: genericParams,
+                type: TSIntersectionType([type, tag])
+            )
+        case .json:
+            if isTransferringRawValueType {
+                return nil
+            }
+            return TSTypeDecl(
+                modifiers: [.export],
+                name: name,
+                genericParams: genericParams,
+                type: TSObjectType([
+                    .field(.init(name: "rawValue", type: type))
+                ])
+            )
+        }
+    }
+
+    func decodePresence() throws -> CodecPresence {
+        return isTransferringRawValueType ? .identity : .required
+    }
+
+    func decodeDecl() throws -> TSFunctionDecl? {
+        guard let decl = try decodeSignature() else { return nil }
+        assert(!isTransferringRawValueType)
+
+        let value = try rawValueType.callDecode(json: TSMemberExpr(base: TSIdentExpr("json"), name: "rawValue"))
+        let field = try rawValueType.valueToField(value: value, for: .entity)
+
+        decl.body.elements.append(
+            TSReturnStmt(TSAsExpr(field, try type(for: .entity)))
         )
+        return decl
+    }
+
+    func encodePresence() throws -> CodecPresence {
+        return isTransferringRawValueType ? .identity : .required
+    }
+
+    func encodeDecl() throws -> TSFunctionDecl? {
+        guard let decl = try encodeSignature() else { return nil }
+        assert(!isTransferringRawValueType)
+
+        let field = try rawValueType.callEncodeField(entity: TSIdentExpr("entity"))
+        let value = try rawValueType.fieldToValue(field: field, for: .json)
+        decl.body.elements.append(
+            TSReturnStmt(TSObjectExpr([
+                .named(name: "rawValue", value: value),
+            ]))
+        )
+        return decl
     }
 }

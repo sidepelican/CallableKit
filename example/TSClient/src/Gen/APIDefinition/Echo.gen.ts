@@ -8,16 +8,20 @@ import {
 } from "../common.gen.js";
 import {
     Student,
-    Student_JSON,
-    Student_decode,
-    Student_encode
+    Student2,
+    Student2_JSON,
+    Student2_decode,
+    Student2_encode,
+    Student3,
+    Student3_JSON,
+    Student3_decode,
+    Student3_encode,
+    Student4,
+    Student4_JSON,
+    Student4_decode,
+    Student4_encode
 } from "./Entity/Student.gen.js";
-import {
-    User,
-    User_JSON,
-    User_decode,
-    User_encode
-} from "./Entity/User.gen.js";
+import { User } from "./Entity/User.gen.js";
 
 export interface IEchoClient {
     hello(request: EchoHelloRequest): Promise<EchoHelloResponse>;
@@ -26,6 +30,9 @@ export interface IEchoClient {
     testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response>;
     emptyRequestAndResponse(): Promise<void>;
     testTypeAliasToRawRepr(request: Student): Promise<Student>;
+    testRawRepr(request: Student2): Promise<Student2>;
+    testRawRepr2(request: Student3): Promise<Student3>;
+    testRawRepr3(request: Student4): Promise<Student4>;
 }
 
 export const bindEcho = (stub: IStubClient): IEchoClient => {
@@ -38,8 +45,7 @@ export const bindEcho = (stub: IStubClient): IEchoClient => {
             return Date_decode(json);
         },
         async testTypicalEntity(request: User): Promise<User> {
-            const json = await stub.send(User_encode(request), "Echo/testTypicalEntity") as User_JSON;
-            return User_decode(json);
+            return await stub.send(request, "Echo/testTypicalEntity") as User;
         },
         async testComplexType(request: TestComplexType_Request): Promise<TestComplexType_Response> {
             const json = await stub.send(request, "Echo/testComplexType") as TestComplexType_Response_JSON;
@@ -49,8 +55,19 @@ export const bindEcho = (stub: IStubClient): IEchoClient => {
             return await stub.send({}, "Echo/emptyRequestAndResponse") as void;
         },
         async testTypeAliasToRawRepr(request: Student): Promise<Student> {
-            const json = await stub.send(Student_encode(request), "Echo/testTypeAliasToRawRepr") as Student_JSON;
-            return Student_decode(json);
+            return await stub.send(request, "Echo/testTypeAliasToRawRepr") as Student;
+        },
+        async testRawRepr(request: Student2): Promise<Student2> {
+            const json = await stub.send(Student2_encode(request), "Echo/testRawRepr") as Student2_JSON;
+            return Student2_decode(json);
+        },
+        async testRawRepr2(request: Student3): Promise<Student3> {
+            const json = await stub.send(Student3_encode(request), "Echo/testRawRepr2") as Student3_JSON;
+            return Student3_decode(json);
+        },
+        async testRawRepr3(request: Student4): Promise<Student4> {
+            const json = await stub.send(Student4_encode(request), "Echo/testRawRepr3") as Student4_JSON;
+            return Student4_decode(json);
         }
     };
 };

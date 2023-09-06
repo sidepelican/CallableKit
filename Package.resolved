@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/CodableToTypeScript",
       "state" : {
-        "revision" : "5015235b2cd2143a4cec22fb5d79cfbd8a5c58a5",
-        "version" : "2.8.2"
+        "revision" : "d0163e47c80bbab53dbbebf1d750166c430401c5",
+        "version" : "2.9.0"
       }
     },
     {
@@ -41,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/SwiftTypeReader",
       "state" : {
-        "revision" : "8c6c49a70eb3492e11393c16103156a0b9f66e09",
-        "version" : "2.6.0"
+        "revision" : "18ee757dbb9aac67fdbb71545e8c246f4248cbb0",
+        "version" : "2.6.2"
       }
     },
     {
