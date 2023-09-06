@@ -162,20 +162,7 @@ struct GenerateTSClient {
             let package = PackageGenerator(
                 context: input.context,
                 typeConverterProvider: TypeConverterProvider(typeMap: typeMap, customProvider: { (generator, stype) in
-                    if let `struct` = stype.asStruct?.decl {
-                        guard `struct`.inheritedTypes.contains(where: { (t) in t.asProtocol?.name == "RawRepresentable" }) else {
-                            return nil
-                        }
-
-                        let rawValueType: (any SType)?
-                        if let alias = `struct`.findType(name: "RawValue")?.asTypeAlias {
-                            rawValueType = alias.underlyingType
-                        } else if let property = `struct`.find(name: "rawValue")?.asVar {
-                            rawValueType = property.interfaceType
-                        } else {
-                            rawValueType = nil
-                        }
-                        guard let rawValueType else { return nil }
+                    if let rawValueType = stype.asStruct?.rawValueType(requiresTransferringRawValueType: false) {
                         return try? FlatRawRepresentableConverter(generator: generator, swiftType: stype, rawValueType: rawValueType)
                     }
 
@@ -218,22 +205,18 @@ struct FlatRawRepresentableConverter: TypeConverter {
     init(
         generator: CodeGenerator,
         swiftType: any SType,
-        rawValueType raw: any SType
+        rawValueType substituted: any SType
     ) throws {
-        let map = swiftType.contextSubstitutionMap()
-        let substituted = raw.subst(map: map)
-
         self.generator = generator
         self.swiftType = swiftType
         self.rawValueType = try generator.converter(for: substituted)
-
-        self.doesRawRepresentableCoding = raw.isRawRepresentableCodingType()
+        self.isTransferringRawValueType = swiftType.asStruct?.rawValueType(requiresTransferringRawValueType: true) != nil
     }
 
     var generator: CodeGenerator
     var swiftType: any SType
     var rawValueType: any TypeConverter
-    var doesRawRepresentableCoding: Bool
+    var isTransferringRawValueType: Bool
 
     func typeDecl(for target: GenerationTarget) throws -> TSTypeDecl? {
         let name = try self.name(for: target)
@@ -257,7 +240,7 @@ struct FlatRawRepresentableConverter: TypeConverter {
                 type: TSIntersectionType([type, tag])
             )
         case .json:
-            if doesRawRepresentableCoding {
+            if isTransferringRawValueType {
                 return nil
             }
             return TSTypeDecl(
@@ -272,12 +255,12 @@ struct FlatRawRepresentableConverter: TypeConverter {
     }
 
     func decodePresence() throws -> CodecPresence {
-        return doesRawRepresentableCoding ? .identity : .required
+        return isTransferringRawValueType ? .identity : .required
     }
 
     func decodeDecl() throws -> TSFunctionDecl? {
         guard let decl = try decodeSignature() else { return nil }
-        assert(!doesRawRepresentableCoding)
+        assert(!isTransferringRawValueType)
 
         let value = try rawValueType.callDecode(json: TSMemberExpr(base: TSIdentExpr("json"), name: "rawValue"))
         let field = try rawValueType.valueToField(value: value, for: .entity)
@@ -289,12 +272,12 @@ struct FlatRawRepresentableConverter: TypeConverter {
     }
 
     func encodePresence() throws -> CodecPresence {
-        return doesRawRepresentableCoding ? .identity : .required
+        return isTransferringRawValueType ? .identity : .required
     }
 
     func encodeDecl() throws -> TSFunctionDecl? {
         guard let decl = try encodeSignature() else { return nil }
-        assert(!doesRawRepresentableCoding)
+        assert(!isTransferringRawValueType)
 
         let field = try rawValueType.callEncodeField(entity: TSIdentExpr("entity"))
         let value = try rawValueType.fieldToValue(field: field, for: .json)
