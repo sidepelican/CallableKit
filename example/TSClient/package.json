@@ -9,10 +9,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^4.6.3"
+    "typescript": "^5.0.0"
   },
-  "type": "module",
-  "engines": {
-    "node": "18.x"
-  }
+  "type": "module"
 }

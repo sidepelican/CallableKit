@@ -8,6 +8,7 @@ let package = Package(
     dependencies: [
         .package(path: "../"),
         .package(url: "https://github.com/vapor/vapor", from: "4.57.0"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird", from: "1.9.0"),
     ],
     targets: [
         .target(
@@ -22,10 +23,20 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "Server",
+            name: "VaporServer",
             dependencies: [
-                "Service",
                 .product(name: "Vapor", package: "vapor"),
+                "Service",
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-strict-concurrency=complete"]),
+            ]
+        ),
+        .executableTarget(
+            name: "HBServer",
+            dependencies: [
+                .product(name: "Hummingbird", package: "hummingbird"),
+                "Service",
             ],
             swiftSettings: [
                 .unsafeFlags(["-strict-concurrency=complete"]),

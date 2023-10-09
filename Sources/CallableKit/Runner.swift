@@ -1,11 +1,12 @@
 import Foundation
 
 public struct Runner {
-    public init(definitionDirectory: URL, clientOut: URL? = nil, middlewareOut: URL? = nil, vaporOut: URL? = nil, tsOut: URL? = nil, module: String? = nil, dependencies: [URL] = [], nextjs: Bool = false) {
+    public init(definitionDirectory: URL, clientOut: URL? = nil, middlewareOut: URL? = nil, vaporOut: URL? = nil, hbOut: URL? = nil, tsOut: URL? = nil, module: String? = nil, dependencies: [URL] = [], nextjs: Bool) {
         self.definitionDirectory = definitionDirectory
         self.clientOut = clientOut
         self.middlewareOut = middlewareOut
         self.vaporOut = vaporOut
+        self.hbOut = hbOut
         self.tsOut = tsOut
         self.module = module
         self.dependencies = dependencies
@@ -16,6 +17,7 @@ public struct Runner {
     public var clientOut: URL?
     public var middlewareOut: URL?
     public var vaporOut: URL?
+    public var hbOut: URL?
     public var tsOut: URL?
     public var module: String?
     public var dependencies: [URL] = []
@@ -49,6 +51,15 @@ public struct Runner {
                 definitionModule: module,
                 srcDirectory: definitionDirectory,
                 dstDirectory: vaporOut,
+                dependencies: dependencies
+            ).run()
+        }
+
+        if let hbOut {
+            try GenerateHBProvider(
+                definitionModule: module,
+                srcDirectory: definitionDirectory,
+                dstDirectory: hbOut,
                 dependencies: dependencies
             ).run()
         }

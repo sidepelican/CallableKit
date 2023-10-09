@@ -13,7 +13,8 @@ struct CodegenPlugin: CommandPlugin {
         let arguments: [String] = [
             "Sources/APIDefinition",
             "--client_out", "Sources/Client/Gen",
-            "--vapor_out", "Sources/Server/Gen",
+            "--vapor_out", "Sources/VaporServer/Gen",
+            "--hb_out", "Sources/HBServer/Gen",
             "--ts_out", "TSClient/src/Gen",
             "--dependency", "Sources/OtherDependency",
         ]
