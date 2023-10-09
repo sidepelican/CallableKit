@@ -24,11 +24,11 @@ struct ErrorMiddleware: HBMiddleware {
         let app = HBApplication(
             configuration: .init(
                 address: .hostname("127.0.0.1", port: 8080),
+                logLevel: .error,
                 tlsOptions: .none
             )
         )
         defer { app.stop() }
-        app.logger.logLevel = .error
 
         let router = app.router.group().add(middleware: ErrorMiddleware())
 
