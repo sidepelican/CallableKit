@@ -92,6 +92,8 @@ extension HBToServiceBridgeProtocol {
     private func generateHBJSONServiceBridge() -> String {
 """
 import Foundation
+import NIOCore
+import NIOFoundationCompat
 import Hummingbird
 
 extension HBToServiceBridgeProtocol where Self == HBJSONServiceBridge {

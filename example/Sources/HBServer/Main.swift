@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import NIOFoundationCompat
 import Service
 
 struct ErrorMiddleware: HBMiddleware {
@@ -24,8 +25,7 @@ struct ErrorMiddleware: HBMiddleware {
         let app = HBApplication(
             configuration: .init(
                 address: .hostname("127.0.0.1", port: 8080),
-                logLevel: .error,
-                tlsOptions: .none
+                logLevel: .error
             )
         )
         defer { app.stop() }
