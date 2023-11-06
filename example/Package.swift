@@ -7,8 +7,8 @@ let package = Package(
     platforms: [.macOS(.v13)],
     dependencies: [
         .package(path: "../"),
-        .package(url: "https://github.com/vapor/vapor", from: "4.57.0"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird", from: "1.9.0"),
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.85.1"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "1.9.0"),
     ],
     targets: [
         .target(

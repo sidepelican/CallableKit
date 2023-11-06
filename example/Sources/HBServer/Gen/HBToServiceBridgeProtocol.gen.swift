@@ -3,26 +3,26 @@ import Hummingbird
 protocol HBToServiceBridgeProtocol {
     func makeHandler<Service, Req, Res>(
         _ serviceBuilder: @Sendable @escaping (HBRequest) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
-    ) -> (HBRequest) async throws -> HBResponse
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
+    ) -> @Sendable (HBRequest) async throws -> HBResponse
     where Req: Decodable & Sendable, Res: Encodable & Sendable
 
     func makeHandler<Service, Res>(
         _ serviceBuilder: @Sendable @escaping (HBRequest) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Res
-    ) -> (HBRequest) async throws -> HBResponse
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> () async throws -> Res
+    ) -> @Sendable (HBRequest) async throws -> HBResponse
     where Res: Encodable & Sendable
 
     func makeHandler<Service, Req>(
         _ serviceBuilder: @Sendable @escaping (HBRequest) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
-    ) -> (HBRequest) async throws -> HBResponse
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
+    ) -> @Sendable (HBRequest) async throws -> HBResponse
     where Req: Decodable & Sendable
 
     func makeHandler<Service>(
         _ serviceBuilder: @Sendable @escaping (HBRequest) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Void
-    ) -> (HBRequest) async throws -> HBResponse
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> () async throws -> Void
+    ) -> @Sendable (HBRequest) async throws -> HBResponse
 }
 
 private struct _Empty: Codable, Sendable {}
@@ -30,8 +30,8 @@ private struct _Empty: Codable, Sendable {}
 extension HBToServiceBridgeProtocol {
     func makeHandler<Service, Res>(
         _ serviceBuilder: @Sendable @escaping (HBRequest) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Res
-    ) -> (HBRequest) async throws -> HBResponse
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> () async throws -> Res
+    ) -> @Sendable (HBRequest) async throws -> HBResponse
     where Res: Encodable & Sendable
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
@@ -45,8 +45,8 @@ extension HBToServiceBridgeProtocol {
 
     func makeHandler<Service, Req>(
         _ serviceBuilder: @Sendable @escaping (HBRequest) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
-    ) -> (HBRequest) async throws -> HBResponse
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> (Req) async throws -> Void
+    ) -> @Sendable (HBRequest) async throws -> HBResponse
     where Req: Decodable & Sendable
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
@@ -61,8 +61,8 @@ extension HBToServiceBridgeProtocol {
 
     func makeHandler<Service>(
         _ serviceBuilder: @Sendable @escaping (HBRequest) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> () async throws -> Void
-    ) -> (HBRequest) async throws -> HBResponse
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> () async throws -> Void
+    ) -> @Sendable (HBRequest) async throws -> HBResponse
     {
         makeHandler(serviceBuilder) { (serviceType: Service.Type) in
             { (service: Service) in

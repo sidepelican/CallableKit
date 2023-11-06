@@ -8,8 +8,8 @@ extension VaporToServiceBridgeProtocol where Self == VaporJSONServiceBridge {
 struct VaporJSONServiceBridge: VaporToServiceBridgeProtocol {
     func makeHandler<Service, Req, Res>(
         _ serviceBuilder: @Sendable @escaping (Request) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
-    ) -> (Request) async throws -> Response
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
+    ) -> @Sendable (Request) async throws -> Response
     where Req: Decodable & Sendable, Res: Encodable & Sendable
     {
         VaporJSONServiceHandler(serviceBuilder: serviceBuilder, methodSelector: methodSelector)
@@ -17,11 +17,11 @@ struct VaporJSONServiceBridge: VaporToServiceBridgeProtocol {
     }
 }
 
-private struct VaporJSONServiceHandler<Service, Req, Res> where Req: Decodable & Sendable, Res: Encodable & Sendable {
+private struct VaporJSONServiceHandler<Service, Req, Res>: Sendable where Req: Decodable & Sendable, Res: Encodable & Sendable {
     var serviceBuilder: @Sendable (Request) async throws -> Service
-    var methodSelector: (Service.Type) -> (Service) -> (Req) async throws -> Res
+    var methodSelector: @Sendable (Service.Type) -> (Service) -> (Req) async throws -> Res
 
-    func callAsFunction(request: Request) async throws -> Response {
+    @Sendable func callAsFunction(request: Request) async throws -> Response {
         let service = try await serviceBuilder(request)
         guard let body = request.body.data else {
             throw Abort(.badRequest, reason: "no body")

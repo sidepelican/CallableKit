@@ -10,8 +10,8 @@ extension HBToServiceBridgeProtocol where Self == HBJSONServiceBridge {
 struct HBJSONServiceBridge: HBToServiceBridgeProtocol {
     func makeHandler<Service, Req, Res>(
         _ serviceBuilder: @Sendable @escaping (HBRequest) async throws -> Service,
-        _ methodSelector: @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
-    ) -> (HBRequest) async throws -> HBResponse
+        _ methodSelector: @Sendable @escaping (Service.Type) -> (Service) -> (Req) async throws -> Res
+    ) -> @Sendable (HBRequest) async throws -> HBResponse
     where Req: Decodable & Sendable, Res: Encodable & Sendable
     {
         HBJSONServiceHandler(serviceBuilder: serviceBuilder, methodSelector: methodSelector)
@@ -19,11 +19,11 @@ struct HBJSONServiceBridge: HBToServiceBridgeProtocol {
     }
 }
 
-private struct HBJSONServiceHandler<Service, Req, Res> where Req: Decodable & Sendable, Res: Encodable & Sendable {
+private struct HBJSONServiceHandler<Service, Req, Res>: Sendable where Req: Decodable & Sendable, Res: Encodable & Sendable {
     var serviceBuilder: @Sendable (HBRequest) async throws -> Service
-    var methodSelector: (Service.Type) -> (Service) -> (Req) async throws -> Res
+    var methodSelector: @Sendable (Service.Type) -> (Service) -> (Req) async throws -> Res
 
-    func callAsFunction(request: HBRequest) async throws -> HBResponse {
+    @Sendable func callAsFunction(request: HBRequest) async throws -> HBResponse {
         let service = try await serviceBuilder(request)
         guard let body = request.body.buffer else {
             throw HBHTTPError(.badRequest, message: "no body")
