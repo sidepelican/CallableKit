@@ -173,7 +173,7 @@ struct GenerateTSClient {
                 outputDirectory: dstDirectory,
                 typeScriptExtension: `extension`
             )
-            package.didGenerateEntry = { [unowned package] (source, entry) in
+            package.didConvertSource = { [unowned package] (source, entry) in
                 try self.processFile(
                     generator: package.codeGenerator,
                     swift: source,
