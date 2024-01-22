@@ -207,7 +207,7 @@ public struct \(stubTypeName)<C: StubClientProtocol>: \(stype.name), Sendable {
 \(stype.functions.map { f in
     let retVal = f.response.map { " -> \($0.typeName)" } ?? ""
     return """
-    public func \(f.name)(\(f.request.map { "\($0.argName): \($0.typeName)" } ?? "")) async throws\(retVal) {
+    public func \(f.name)(\(f.request.map { "\($0.argOuterName.map({ "\($0) " }) ?? "")\($0.argName): \($0.typeName)" } ?? "")) async throws\(retVal) {
         return try await client.send(path: "\(stype.serviceName)/\(f.name)"\(f.request.map { ", request: \($0.argName)" } ??  ""))
     }
 """ }.joined(separator: "\n"))

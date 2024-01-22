@@ -26,7 +26,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
         }
 
         do {
-            let res = try await client.echo.tommorow(now: Date())
+            let res = try await client.echo.tommorow(from: Date())
             print(res)
         }
 
