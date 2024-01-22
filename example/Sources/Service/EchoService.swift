@@ -12,7 +12,7 @@ struct EchoService: EchoServiceProtocol {
         )
     }
 
-    func tommorow(now: Date) async throws -> Date {
+    func tommorow(from now: Date) async throws -> Date {
         now.addingTimeInterval(60 * 60 * 24 * 1)
     }
 

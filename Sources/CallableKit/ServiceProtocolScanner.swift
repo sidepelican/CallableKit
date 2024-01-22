@@ -8,6 +8,7 @@ struct ServiceProtocolType {
     struct Function {
         var name: String
         struct Request {
+            var argOuterName: String?
             var argName: String
             var typeName: String
             var raw: any SType
@@ -52,7 +53,7 @@ enum ServiceProtocolScanner {
             return ServiceProtocolType.Function(
                 name: fdecl.name,
                 request: fdecl.parameters.first.map {
-                    .init(argName: $0.name!, typeName: $0.interfaceType.description, raw: $0.interfaceType)
+                    .init(argOuterName: $0.outerName, argName: $0.name!, typeName: $0.interfaceType.description, raw: $0.interfaceType)
                 },
                 response: fdecl.resultTypeRepr.map {
                     .init(

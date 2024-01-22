@@ -1,3 +1,4 @@
+#if !DISABLE_FOUNDATION_NETWORKING
 import Foundation
 #if canImport(FoundationNetworking)
 @preconcurrency import FoundationNetworking
@@ -122,4 +123,5 @@ extension URLSession {
         })
     }
 }
+#endif
 #endif
