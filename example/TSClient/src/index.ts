@@ -1,6 +1,6 @@
 import { bindAccount } from "./Gen/APIDefinition/Account.gen.js";
 import { bindEcho } from "./Gen/APIDefinition/Echo.gen.js";
-import { Student, Student2, Student3, Student4 } from "./Gen/APIDefinition/Entity/Student.gen.js";
+import { Student, Student2, Student3, Student4, Student5 } from "./Gen/APIDefinition/Entity/Student.gen.js";
 import { User_ID } from "./Gen/APIDefinition/Entity/User.gen.js";
 import { createStubClient } from "./Gen/CallableKit.gen.js";
 
@@ -76,6 +76,15 @@ async function main() {
       name: "taro"
     }
     const res = await echoClient.testRawRepr3(student);
+    console.log(JSON.stringify(res));
+  }
+
+  {
+    const student: Student5 = {
+      id: "0005",
+      name: "taro"
+    }
+    const res = await echoClient.testRawRepr4(student);
     console.log(JSON.stringify(res));
   }
 

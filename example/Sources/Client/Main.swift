@@ -86,6 +86,15 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
         }
 
         do {
+            let student: Student5 = .init(
+                id: Student5.ID(rawValue: "0005"),
+                name: "taro"
+            )
+            let res = try await client.echo.testRawRepr4(request: student)
+            dump(res)
+        }
+
+        do {
             let res = try await client.account.signin(request: .init(
                 email: "example@example.com",
                 password: "password"

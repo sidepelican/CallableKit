@@ -15,4 +15,5 @@ func configureEchoService(
     router.post("Echo/testRawRepr", use: bridge.makeHandler(serviceBuilder, { $0.testRawRepr }))
     router.post("Echo/testRawRepr2", use: bridge.makeHandler(serviceBuilder, { $0.testRawRepr2 }))
     router.post("Echo/testRawRepr3", use: bridge.makeHandler(serviceBuilder, { $0.testRawRepr3 }))
+    router.post("Echo/testRawRepr4", use: bridge.makeHandler(serviceBuilder, { $0.testRawRepr4 }))
 }

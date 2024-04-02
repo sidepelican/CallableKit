@@ -37,7 +37,7 @@ public struct GenericID4<_IDSpecifier, RawValue: Sendable & Codable>: RawReprese
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        id = try container.decode(RawValue.self)
+        rawValue = try container.decode(RawValue.self)
     }
 
     public func encode(to encoder: Encoder) throws {

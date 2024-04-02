@@ -20,6 +20,7 @@ struct EchoServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: EchoSe
             group.post("testRawRepr", use: bridge.makeHandler(serviceBuilder, { $0.testRawRepr }))
             group.post("testRawRepr2", use: bridge.makeHandler(serviceBuilder, { $0.testRawRepr2 }))
             group.post("testRawRepr3", use: bridge.makeHandler(serviceBuilder, { $0.testRawRepr3 }))
+            group.post("testRawRepr4", use: bridge.makeHandler(serviceBuilder, { $0.testRawRepr4 }))
         }
     }
 }

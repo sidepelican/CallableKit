@@ -42,4 +42,8 @@ struct EchoService: EchoServiceProtocol {
     func testRawRepr3(request: Student4) async throws -> Student4 {
         return request
     }
+
+    func testRawRepr4(request: Student5) async throws -> Student5 {
+        return request
+    }
 }

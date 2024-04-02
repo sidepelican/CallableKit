@@ -9,6 +9,7 @@ import {
     GenericID3_JSON,
     GenericID3_decode,
     GenericID3_encode,
+    GenericID4,
     MyValue,
     MyValue_JSON,
     MyValue_decode
@@ -174,3 +175,10 @@ export function Student4_ID_encode(entity: Student4_ID): Student4_ID_JSON {
         >(entity, Student4_encode, identity);
     });
 }
+
+export type Student5 = {
+    id: Student5_ID;
+    name: string;
+} & TagRecord<"Student5">;
+
+export type Student5_ID = GenericID4<Student4, string>;
