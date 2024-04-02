@@ -227,7 +227,7 @@ struct FlatRawRepresentableConverter: TypeConverter {
         self.swiftType = swiftType
         self.rawValueType = try generator.converter(for: substituted)
         self.isTransferringRawValueType = swiftType.asStruct?.rawValueType(requiresTransferringRawValueType: true) != nil
-          || transferringRawValue
+        || transferringRawValue
     }
 
     var generator: CodeGenerator
