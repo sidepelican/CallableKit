@@ -19,7 +19,8 @@ import {
     Student4,
     Student4_JSON,
     Student4_decode,
-    Student4_encode
+    Student4_encode,
+    Student5
 } from "./Entity/Student.gen.js";
 import { User } from "./Entity/User.gen.js";
 
@@ -33,6 +34,7 @@ export interface IEchoClient {
     testRawRepr(request: Student2): Promise<Student2>;
     testRawRepr2(request: Student3): Promise<Student3>;
     testRawRepr3(request: Student4): Promise<Student4>;
+    testRawRepr4(request: Student5): Promise<Student5>;
 }
 
 export const bindEcho = (stub: IStubClient): IEchoClient => {
@@ -68,6 +70,9 @@ export const bindEcho = (stub: IStubClient): IEchoClient => {
         async testRawRepr3(request: Student4): Promise<Student4> {
             const json = await stub.send(Student4_encode(request), "Echo/testRawRepr3") as Student4_JSON;
             return Student4_decode(json);
+        },
+        async testRawRepr4(request: Student5): Promise<Student5> {
+            return await stub.send(request, "Echo/testRawRepr4") as Student5;
         }
     };
 };

@@ -89,3 +89,5 @@ export type GenericID3_RawValue_JSON = MyValue_JSON;
 export function GenericID3_RawValue_decode(json: GenericID3_RawValue_JSON): GenericID3_RawValue {
     return MyValue_decode(json);
 }
+
+export type GenericID4<_IDSpecifier, RawValue> = RawValue & TagRecord<"GenericID4", [_IDSpecifier, RawValue]>;

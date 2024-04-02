@@ -26,3 +26,22 @@ public struct GenericID3<T>: Codable & RawRepresentable & Sendable {
     public typealias RawValue = MyValue
     public var rawValue: RawValue
 }
+
+/// @CallableKit(transferringRawValue: true)
+public struct GenericID4<_IDSpecifier, RawValue: Sendable & Codable>: RawRepresentable, Sendable, Codable {
+    public init(rawValue: RawValue) {
+        self.rawValue = rawValue
+    }
+
+    public var rawValue: RawValue
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        rawValue = try container.decode(RawValue.self)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}

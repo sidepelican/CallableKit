@@ -41,3 +41,14 @@ public struct Student4: Codable, Sendable {
     public var id: ID
     public var name: String
 }
+
+public struct Student5: Codable, Sendable {
+    public typealias ID = GenericID4<Student4, String>
+
+    public init(id: ID, name: String) {
+        self.id = id
+        self.name = name
+    }
+    public var id: ID
+    public var name: String
+}

@@ -163,7 +163,21 @@ struct GenerateTSClient {
                 context: input.context,
                 typeConverterProvider: TypeConverterProvider(typeMap: typeMap, customProvider: { (generator, stype) in
                     if let rawValueType = stype.asStruct?.rawValueType(requiresTransferringRawValueType: false) {
-                        return try? FlatRawRepresentableConverter(generator: generator, swiftType: stype, rawValueType: rawValueType)
+                        var transferringRawValue = false
+                        if let comment = stype.asNominal?.nominalTypeDecl.comment,
+                           let match = comment.firstMatch(of: /@CallableKit\((.+?)\)/) {
+                            let options = extractOptions(match.output.1)
+                            if options["transferringRawValue"] == "true" {
+                                transferringRawValue = true
+                            }
+                        }
+
+                        return try? FlatRawRepresentableConverter(
+                            generator: generator,
+                            swiftType: stype,
+                            rawValueType: rawValueType,
+                            transferringRawValue: transferringRawValue
+                        )
                     }
 
                     return nil
@@ -201,16 +215,19 @@ struct GenerateTSClient {
     }
 }
 
+// TS側で.rawValueを経由せず直接RawValueで扱えるようにするコンバータ
 struct FlatRawRepresentableConverter: TypeConverter {
     init(
         generator: CodeGenerator,
         swiftType: any SType,
-        rawValueType substituted: any SType
+        rawValueType substituted: any SType,
+        transferringRawValue: Bool
     ) throws {
         self.generator = generator
         self.swiftType = swiftType
         self.rawValueType = try generator.converter(for: substituted)
         self.isTransferringRawValueType = swiftType.asStruct?.rawValueType(requiresTransferringRawValueType: true) != nil
+        || transferringRawValue
     }
 
     var generator: CodeGenerator
@@ -288,4 +305,13 @@ struct FlatRawRepresentableConverter: TypeConverter {
         )
         return decl
     }
+}
+
+fileprivate func extractOptions(_ parametersString: some StringProtocol) -> [Substring: Substring] {
+    let keyAndValues = parametersString
+        .split(separator: ",")
+        .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+        .compactMap({ $0.wholeMatch(of: /(\w+)\s*:\s*(.*)/) })
+        .map({ ($0.output.1, $0.output.2) })
+    return [Substring: Substring](uniqueKeysWithValues: keyAndValues)
 }

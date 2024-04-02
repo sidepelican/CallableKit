@@ -1,4 +1,4 @@
-// swift-tools-version: 5.8
+// swift-tools-version: 5.9
 
 import PackageDescription
 
@@ -10,9 +10,9 @@ let package = Package(
         .library(name: "CallableKit", targets: ["CallableKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.2.2"),
-        .package(url: "https://github.com/omochi/CodableToTypeScript", from: "2.10.0"),
-        .package(url: "https://github.com/omochi/SwiftTypeReader", from: "2.6.2"),
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
+        .package(url: "https://github.com/omochi/CodableToTypeScript", from: "2.11.0"),
+        .package(url: "https://github.com/omochi/SwiftTypeReader", from: "2.8.0"),
     ],
     targets: [
         .executableTarget(
@@ -27,6 +27,9 @@ let package = Package(
             dependencies: [
                 "CodableToTypeScript",
                 "SwiftTypeReader"
+            ],
+            swiftSettings: [
+                .enableUpcomingFeature("BareSlashRegexLiterals"),
             ]
         )
     ]
