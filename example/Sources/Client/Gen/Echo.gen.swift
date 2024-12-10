@@ -44,3 +44,27 @@ extension StubClientProtocol {
         EchoServiceStub(client: self)
     }
 }
+
+protocol ServiceTransport<Service> {
+    associatedtype Service
+    func register<Request: Decodable, Response: Encodable>(
+        path: String,
+        methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Response
+    )
+}
+
+func configureEcho<Echo: EchoServiceProtocol>(
+    transport: some ServiceTransport<Echo>
+) {
+    transport.register(path: "Echo/hello", methodSelector: { $0.hello })
+    transport.register(path: "Echo/tommorow", methodSelector: { $0.tommorow })
+}
+
+struct URLSessionTransport<Service>: ServiceTransport {
+    func register<Request, Response>(
+        path: String,
+        methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Response
+    ) where Request : Decodable, Response : Encodable {
+        
+    }
+}

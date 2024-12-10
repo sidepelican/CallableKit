@@ -1,14 +1,35 @@
-// swift-tools-version: 5.8
+// swift-tools-version: 5.10
 
 import PackageDescription
 
+func swiftSettings() -> [SwiftSetting] {
+    return [
+        .enableUpcomingFeature("ForwardTrailingClosures"),
+        .enableUpcomingFeature("ConciseMagicFile"),
+        .enableUpcomingFeature("BareSlashRegexLiterals"),
+        .enableUpcomingFeature("IsolatedDefaultValues"),
+        .enableUpcomingFeature("DeprecateApplicationMain"),
+        .enableUpcomingFeature("GlobalConcurrency"),
+        .enableUpcomingFeature("DynamicActorIsolation"),
+//        .enableUpcomingFeature("InternalImportsByDefault"),
+        .enableUpcomingFeature("DisableOutwardActorInference"),
+        .enableUpcomingFeature("ImportObjcForwardDeclarations"),
+        .enableUpcomingFeature("GlobalActorIsolatedTypesUsability"),
+        .enableUpcomingFeature("MemberImportVisibility"),
+//        .enableUpcomingFeature("InferSendableFromCaptures"),
+        .enableUpcomingFeature("RegionBasedIsolation"),
+        .enableUpcomingFeature("ExistentialAny"),
+        .enableUpcomingFeature("StrictConcurrency"),
+    ]
+}
+
 let package = Package(
     name: "MyApplication",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v14)],
     dependencies: [
         .package(path: "../"),
-        .package(url: "https://github.com/vapor/vapor.git", from: "4.85.1"),
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "1.9.0"),
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.106.7"),
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.5.0"),
     ],
     targets: [
         .target(
@@ -28,9 +49,7 @@ let package = Package(
                 .product(name: "Vapor", package: "vapor"),
                 "Service",
             ],
-            swiftSettings: [
-                .unsafeFlags(["-strict-concurrency=complete"]),
-            ]
+            swiftSettings: swiftSettings()
         ),
         .executableTarget(
             name: "HBServer",
@@ -38,9 +57,7 @@ let package = Package(
                 .product(name: "Hummingbird", package: "hummingbird"),
                 "Service",
             ],
-            swiftSettings: [
-                .unsafeFlags(["-strict-concurrency=complete"]),
-            ]
+            swiftSettings: swiftSettings()
         ),
         .executableTarget(
             name: "Client",

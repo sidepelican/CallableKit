@@ -1,5 +1,5 @@
 import ArgumentParser
-import CallableKit
+import CodegenImpl
 import Foundation
 
 @main struct Codegen: ParsableCommand {
@@ -45,7 +45,7 @@ import Foundation
     }
 }
 
-extension URL: ExpressibleByArgument {
+extension URL: ArgumentParser.ExpressibleByArgument {
     public init?(argument: String) {
         self = URL(fileURLWithPath: argument)
     }

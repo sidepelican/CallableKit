@@ -24,3 +24,58 @@ struct EchoServiceProvider<Bridge: VaporToServiceBridgeProtocol, Service: EchoSe
         }
     }
 }
+
+protocol ServiceTransport<Service> {
+    associatedtype Service
+    func register<Request: Decodable, Response: Encodable>(
+        path: String,
+        methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Response
+    )
+}
+
+func configureEcho<Echo: EchoServiceProtocol>(
+    transport: some ServiceTransport<Echo>
+) {
+    transport.register(path: "Echo/hello", methodSelector: { $0.hello })
+    transport.register(path: "Echo/tommorow", methodSelector: { $0.tommorow })
+}
+
+extension ServiceTransport {
+    
+}
+
+import Service
+import Foundation
+
+func main() async throws {
+    let app = try await Application.make()
+
+    configureEcho(transport: VaporTransport(router: app.routes) { _ in
+        makeEchoService()
+    })
+
+    try await app.execute()
+}
+
+struct VaporTransport<Router: RoutesBuilder, Service>: ServiceTransport {
+    var router: Router
+    var serviceBuilder: @Sendable (Request) -> Service
+
+    func register<Request: Decodable, Response: Encodable>(
+        path: String,
+        methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Response
+    ) {
+        router.post(PathComponent(stringLiteral: path)) { [serviceBuilder] request in
+            let serviceRequest = try request.content.decode(Request.self)
+            let service = serviceBuilder(request)
+            let serviceResponse = try await methodSelector(Service.self)(service)(serviceRequest)
+
+            var buffer = request.byteBufferAllocator.buffer(capacity: 0)
+            var headers = HTTPHeaders()
+            let encoder = try ContentConfiguration.global.requireEncoder(for: .json)
+            try encoder.encode(serviceResponse, to: &buffer, headers: &headers)
+
+            return Vapor.Response(status: .ok, headers: headers, body: .init(buffer: buffer))
+        }
+    }
+}
