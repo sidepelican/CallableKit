@@ -9,6 +9,8 @@ let package = Package(
     products: [
         .executable(name: "codegen", targets: ["Codegen"]),
         .library(name: "CallableKit", targets: ["CallableKit"]),
+        .library(name: "CallableKitVaporTransport", targets: ["CallableKitVaporTransport"]),
+        .library(name: "CallableKitHummingbirdTransport", targets: ["CallableKitHummingbirdTransport"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),

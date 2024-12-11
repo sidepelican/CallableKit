@@ -50,6 +50,7 @@ let package = Package(
             name: "VaporServer",
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
+                .product(name: "CallableKitVaporTransport", package: "CallableKit"),
                 "Service",
             ],
             swiftSettings: swiftSettings()
@@ -58,6 +59,7 @@ let package = Package(
             name: "HBServer",
             dependencies: [
                 .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "CallableKitHummingbirdTransport", package: "CallableKit"),
                 "Service",
             ],
             swiftSettings: swiftSettings()
