@@ -34,7 +34,10 @@ let package = Package(
     targets: [
         .target(
             name: "APIDefinition",
-            dependencies: ["OtherDependency"]
+            dependencies: [
+                .product(name: "CallableKit", package: "CallableKit"),
+                "OtherDependency",
+            ]
         ),
         .target(name: "OtherDependency"),
         .target(

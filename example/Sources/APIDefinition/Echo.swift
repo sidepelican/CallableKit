@@ -1,5 +1,7 @@
+import CallableKit
 import Foundation
 
+@Callable
 public protocol EchoServiceProtocol {
     func hello(request: EchoHelloRequest) async throws -> EchoHelloResponse
 

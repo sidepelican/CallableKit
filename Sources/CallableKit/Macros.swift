@@ -1,5 +1,5 @@
 @attached(
     peer,
-    names: arbitrary
+    names: prefixed(configure)
 )
 public macro Callable() = #externalMacro(module: "CallableKitMacros", type: "CallableMacro")

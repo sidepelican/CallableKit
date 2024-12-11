@@ -1,6 +1,8 @@
+import CallableKit
 import Foundation
 import OtherDependency
 
+@Callable
 public protocol AccountServiceProtocol {
     func signin(request: AccountSignin.Request) async throws -> CodableResult<AccountSignin.Response, SubmitError<AccountSignin.Error>>
 }
