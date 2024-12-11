@@ -1,34 +1,37 @@
+import APIDefinition
+import CallableKitVaporTransport
 import Vapor
 import Service
 
-let app = Application()
-defer { app.shutdown() }
+@main struct Main {
+    static func main() async throws {
+        let app = try await Application.make()
 
-app.logger.logLevel = .error
-let logger = app.logger
+        app.logger.logLevel = .error
+        let logger = app.logger
 
-let myErrorMiddleware = ErrorMiddleware { _, error in
-    logger.error("\(error)")
-    struct ErrorFrame: Encodable {
-        var errorMessage: String
+        let myErrorMiddleware = ErrorMiddleware { _, error in
+            logger.error("\(error)")
+            struct ErrorFrame: Encodable {
+                var errorMessage: String
+            }
+            let errorFrame = ErrorFrame(errorMessage: "\(error)")
+            var headers = HTTPHeaders()
+            headers.contentType = .json
+            headers.cacheControl = .init(noStore: true)
+            let body = (try? JSONEncoder().encode(errorFrame)) ?? .init()
+            return Response(status: .internalServerError, headers: headers, body: .init(data: body))
+        }
+
+        app.group(myErrorMiddleware) { routes in
+            configureAccountServiceProtocol(transport: VaporTransport(router: routes) { _ in
+                makeAccountService()
+            })
+            configureEchoServiceProtocol(transport: VaporTransport(router: routes) { _ in
+                makeEchoService()
+            })
+        }
+
+        try await app.execute()
     }
-    let errorFrame = ErrorFrame(errorMessage: "\(error)")
-    var headers = HTTPHeaders()
-    headers.contentType = .json
-    headers.cacheControl = .init(noStore: true)
-    let body = (try? JSONEncoder().encode(errorFrame)) ?? .init()
-    return Response(status: .internalServerError, headers: headers, body: .init(data: body))
 }
-
-try app.group(myErrorMiddleware) { routes in
-    let echoProvider = EchoServiceProvider { req in
-        makeEchoService()
-    }
-    let accountProvider = AccountServiceProvider { req in
-        makeAccountService()
-    }
-    try routes.register(collection: echoProvider)
-    try routes.register(collection: accountProvider)
-}
-
-try app.run()

@@ -1,13 +1,13 @@
 import CallableKit
 import Vapor
 
-public struct VaporTransport<Router: RoutesBuilder, Service>: ServiceTransport {
-    public init(router: Router, serviceBuilder: @escaping @Sendable (Request) -> Service) {
+public struct VaporTransport<Service>: ServiceTransport {
+    public init(router: any RoutesBuilder, serviceBuilder: @escaping @Sendable (Request) -> Service) {
         self.router = router
         self.serviceBuilder = serviceBuilder
     }
     
-    public var router: Router
+    public var router: any RoutesBuilder
     public var serviceBuilder: @Sendable (Request) -> Service
 
     public func register<Request: Decodable, Response: Encodable>(
