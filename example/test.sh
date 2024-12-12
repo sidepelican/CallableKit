@@ -2,15 +2,15 @@
 set -o pipefail
 
 swift package --allow-writing-to-package-directory codegen
-swift build -c release
+swift build
 
 APP=${1:-}
 case ${APP} in
   "vapor")
-    .build/release/VaporServer &
+    .build/debug/VaporServer &
     ;;
   "hummingbird")
-    .build/release/HBServer &
+    .build/debug/HBServer &
     ;;
   *)
     echo "$0 <vapor|hummingbird>"
@@ -27,6 +27,6 @@ until curl -s -o /dev/null http://localhost:8080/; do
    sleep 0.1
 done
 
-.build/release/Client
+.build/debug/Client
 cd TSClient
 npm install && npm run run
