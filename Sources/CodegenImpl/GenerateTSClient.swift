@@ -271,8 +271,8 @@ struct FlatRawRepresentableConverter: TypeConverter {
         }
     }
 
-    func decodePresence() throws -> CodecPresence {
-        return isTransferringRawValueType ? .identity : .required
+    func hasDecode() -> Bool {
+        return !isTransferringRawValueType
     }
 
     func decodeDecl() throws -> TSFunctionDecl? {
@@ -288,8 +288,8 @@ struct FlatRawRepresentableConverter: TypeConverter {
         return decl
     }
 
-    func encodePresence() throws -> CodecPresence {
-        return isTransferringRawValueType ? .identity : .required
+    func hasEncode() -> Bool {
+        return !isTransferringRawValueType
     }
 
     func encodeDecl() throws -> TSFunctionDecl? {

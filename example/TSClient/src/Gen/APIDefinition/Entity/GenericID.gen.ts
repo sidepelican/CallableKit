@@ -4,25 +4,25 @@ export type GenericID<T> = string & TagRecord<"GenericID", [T]>;
 
 export type GenericID2<_IDSpecifier, RawValue> = RawValue & TagRecord<"GenericID2", [_IDSpecifier, RawValue]>;
 
-export type GenericID2_JSON<_IDSpecifier_JSON, RawValue_JSON> = {
-    rawValue: RawValue_JSON;
+export type GenericID2$JSON<_IDSpecifier$JSON, RawValue$JSON> = {
+    rawValue: RawValue$JSON;
 };
 
 export function GenericID2_decode<
     _IDSpecifier,
-    _IDSpecifier_JSON,
+    _IDSpecifier$JSON,
     RawValue,
-    RawValue_JSON
->(json: GenericID2_JSON<_IDSpecifier_JSON, RawValue_JSON>, _IDSpecifier_decode: (json: _IDSpecifier_JSON) => _IDSpecifier, RawValue_decode: (json: RawValue_JSON) => RawValue): GenericID2<_IDSpecifier, RawValue> {
+    RawValue$JSON
+>(json: GenericID2$JSON<_IDSpecifier$JSON, RawValue$JSON>, _IDSpecifier_decode: (json: _IDSpecifier$JSON) => _IDSpecifier, RawValue_decode: (json: RawValue$JSON) => RawValue): GenericID2<_IDSpecifier, RawValue> {
     return RawValue_decode(json.rawValue) as GenericID2<_IDSpecifier, RawValue>;
 }
 
 export function GenericID2_encode<
     _IDSpecifier,
-    _IDSpecifier_JSON,
+    _IDSpecifier$JSON,
     RawValue,
-    RawValue_JSON
->(entity: GenericID2<_IDSpecifier, RawValue>, _IDSpecifier_encode: (entity: _IDSpecifier) => _IDSpecifier_JSON, RawValue_encode: (entity: RawValue) => RawValue_JSON): GenericID2_JSON<_IDSpecifier_JSON, RawValue_JSON> {
+    RawValue$JSON
+>(entity: GenericID2<_IDSpecifier, RawValue>, _IDSpecifier_encode: (entity: _IDSpecifier) => _IDSpecifier$JSON, RawValue_encode: (entity: RawValue) => RawValue$JSON): GenericID2$JSON<_IDSpecifier$JSON, RawValue$JSON> {
     return {
         rawValue: RawValue_encode(entity)
     };
@@ -38,7 +38,7 @@ export type MyValue = ({
     none: {};
 }) & TagRecord<"MyValue">;
 
-export type MyValue_JSON = {
+export type MyValue$JSON = {
     id: {
         _0: string;
     };
@@ -46,7 +46,7 @@ export type MyValue_JSON = {
     none: {};
 };
 
-export function MyValue_decode(json: MyValue_JSON): MyValue {
+export function MyValue_decode(json: MyValue$JSON): MyValue {
     if ("id" in json) {
         const j = json.id;
         const _0 = j._0;
@@ -68,25 +68,25 @@ export function MyValue_decode(json: MyValue_JSON): MyValue {
 
 export type GenericID3<T> = MyValue & TagRecord<"GenericID3", [T]>;
 
-export type GenericID3_JSON<T_JSON> = {
-    rawValue: MyValue_JSON;
+export type GenericID3$JSON<T$JSON> = {
+    rawValue: MyValue$JSON;
 };
 
-export function GenericID3_decode<T, T_JSON>(json: GenericID3_JSON<T_JSON>, T_decode: (json: T_JSON) => T): GenericID3<T> {
+export function GenericID3_decode<T, T$JSON>(json: GenericID3$JSON<T$JSON>, T_decode: (json: T$JSON) => T): GenericID3<T> {
     return MyValue_decode(json.rawValue) as GenericID3<T>;
 }
 
-export function GenericID3_encode<T, T_JSON>(entity: GenericID3<T>, T_encode: (entity: T) => T_JSON): GenericID3_JSON<T_JSON> {
+export function GenericID3_encode<T, T$JSON>(entity: GenericID3<T>, T_encode: (entity: T) => T$JSON): GenericID3$JSON<T$JSON> {
     return {
-        rawValue: entity as MyValue_JSON
+        rawValue: entity as MyValue$JSON
     };
 }
 
-export type GenericID3_RawValue = MyValue;
+export type GenericID3_RawValue<T> = MyValue;
 
-export type GenericID3_RawValue_JSON = MyValue_JSON;
+export type GenericID3_RawValue$JSON<T$JSON> = MyValue$JSON;
 
-export function GenericID3_RawValue_decode(json: GenericID3_RawValue_JSON): GenericID3_RawValue {
+export function GenericID3_RawValue_decode<T, T$JSON>(json: GenericID3_RawValue$JSON<T$JSON>, T_decode: (json: T$JSON) => T): GenericID3_RawValue<T> {
     return MyValue_decode(json);
 }
 

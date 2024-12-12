@@ -5,12 +5,12 @@ export type InputFieldError<E> = {
     message: string;
 } & TagRecord<"InputFieldError", [E]>;
 
-export type InputFieldError_JSON<E_JSON> = {
-    name: E_JSON;
+export type InputFieldError$JSON<E$JSON> = {
+    name: E$JSON;
     message: string;
 };
 
-export function InputFieldError_decode<E, E_JSON>(json: InputFieldError_JSON<E_JSON>, E_decode: (json: E_JSON) => E): InputFieldError<E> {
+export function InputFieldError_decode<E, E$JSON>(json: InputFieldError$JSON<E$JSON>, E_decode: (json: E$JSON) => E): InputFieldError<E> {
     const name = E_decode(json.name);
     const message = json.message;
     return {
@@ -19,7 +19,7 @@ export function InputFieldError_decode<E, E_JSON>(json: InputFieldError_JSON<E_J
     };
 }
 
-export function InputFieldError_encode<E, E_JSON>(entity: InputFieldError<E>, E_encode: (entity: E) => E_JSON): InputFieldError_JSON<E_JSON> {
+export function InputFieldError_encode<E, E$JSON>(entity: InputFieldError<E>, E_encode: (entity: E) => E$JSON): InputFieldError$JSON<E$JSON> {
     const name = E_encode(entity.name);
     const message = entity.message;
     return {
@@ -32,22 +32,22 @@ export type SubmitError<E> = {
     errors: InputFieldError<E>[];
 } & TagRecord<"SubmitError", [E]>;
 
-export type SubmitError_JSON<E_JSON> = {
-    errors: InputFieldError_JSON<E_JSON>[];
+export type SubmitError$JSON<E$JSON> = {
+    errors: InputFieldError$JSON<E$JSON>[];
 };
 
-export function SubmitError_decode<E, E_JSON>(json: SubmitError_JSON<E_JSON>, E_decode: (json: E_JSON) => E): SubmitError<E> {
-    const errors = Array_decode<InputFieldError<E>, InputFieldError_JSON<E_JSON>>(json.errors, (json: InputFieldError_JSON<E_JSON>): InputFieldError<E> => {
-        return InputFieldError_decode<E, E_JSON>(json, E_decode);
+export function SubmitError_decode<E, E$JSON>(json: SubmitError$JSON<E$JSON>, E_decode: (json: E$JSON) => E): SubmitError<E> {
+    const errors = Array_decode<InputFieldError<E>, InputFieldError$JSON<E$JSON>>(json.errors, (json: InputFieldError$JSON<E$JSON>): InputFieldError<E> => {
+        return InputFieldError_decode<E, E$JSON>(json, E_decode);
     });
     return {
         errors: errors
     };
 }
 
-export function SubmitError_encode<E, E_JSON>(entity: SubmitError<E>, E_encode: (entity: E) => E_JSON): SubmitError_JSON<E_JSON> {
-    const errors = Array_encode<InputFieldError<E>, InputFieldError_JSON<E_JSON>>(entity.errors, (entity: InputFieldError<E>): InputFieldError_JSON<E_JSON> => {
-        return InputFieldError_encode<E, E_JSON>(entity, E_encode);
+export function SubmitError_encode<E, E$JSON>(entity: SubmitError<E>, E_encode: (entity: E) => E$JSON): SubmitError$JSON<E$JSON> {
+    const errors = Array_encode<InputFieldError<E>, InputFieldError$JSON<E$JSON>>(entity.errors, (entity: InputFieldError<E>): InputFieldError$JSON<E$JSON> => {
+        return InputFieldError_encode<E, E$JSON>(entity, E_encode);
     });
     return {
         errors: errors
