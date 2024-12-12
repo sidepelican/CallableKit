@@ -1,5 +1,6 @@
 import APIDefinition
 import CallableKitHummingbirdTransport
+import Foundation
 import Logging
 import Hummingbird
 import Service
@@ -15,7 +16,9 @@ struct ErrorMiddleware<Context: RequestContext>: MiddlewareProtocol {
         } catch {
             context.logger.error("\(error)")
             let errorFrame = ErrorFrame(errorMessage: "\(error)")
-            return try context.responseEncoder.encode(errorFrame, from: input, context: context)
+            var response = try JSONEncoder().encode(errorFrame, from: input, context: context)
+            response.headers[.cacheControl] = "no-store"
+            return response
         }
     }
 }

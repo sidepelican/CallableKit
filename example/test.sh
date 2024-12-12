@@ -23,7 +23,9 @@ function finally {
 }
 trap finally EXIT
 
-sleep 0.2
+until curl -s -o /dev/null http://localhost:8080/; do
+   sleep 0.1
+done
 
 .build/release/Client
 cd TSClient
