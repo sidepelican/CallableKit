@@ -46,7 +46,7 @@ extension ServiceTransport {
     ) {
         register(path: path) { (serviceType) in
             { (service: Service) in
-                { () -> Response in
+                { (_: _Empty) -> Response in
                     return try await methodSelector(serviceType)(service)()
                 }
             }
@@ -59,8 +59,9 @@ extension ServiceTransport {
     ) {
         register(path: path) { (serviceType) in
             { (service: Service) in
-                { () -> Void in
+                { (_: _Empty) -> _Empty  in
                     try await methodSelector(serviceType)(service)()
+                    return _Empty()
                 }
             }
         }

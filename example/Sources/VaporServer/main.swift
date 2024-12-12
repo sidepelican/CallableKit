@@ -33,5 +33,6 @@ import Service
         }
 
         try await app.execute()
+        try await app.asyncShutdown()
     }
 }

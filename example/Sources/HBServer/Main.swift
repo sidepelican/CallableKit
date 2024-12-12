@@ -42,6 +42,6 @@ struct ErrorMiddleware<Context: RequestContext>: MiddlewareProtocol {
             logger: logger
         )
 
-        try await app.run()
+        try await app.runService()
     }
 }
