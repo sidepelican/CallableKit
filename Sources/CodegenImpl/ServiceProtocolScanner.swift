@@ -38,11 +38,11 @@ enum ServiceProtocolScanner {
 
     static func scan(_ stype: any SType) -> ServiceProtocolType? {
         guard let ptype = stype as? ProtocolType,
-              ptype.name.hasSuffix("ServiceProtocol"),
+              ptype.decl.attributes.contains(where: { $0.name == "Callable" }),
               !ptype.decl.functions.isEmpty
         else { return nil }
 
-        let serviceName = ptype.name.replacingOccurrences(of: "ServiceProtocol", with: "")
+        let serviceName = ptype.name.trimmingSuffix("Protocol").trimmingSuffix("Service")
 
         let functions = ptype.decl.functions.compactMap { fdecl -> ServiceProtocolType.Function? in
             guard fdecl.parameters.count <= 1 else {
@@ -75,5 +75,16 @@ enum ServiceProtocolScanner {
             functions: functions,
             raw: ptype
         )
+    }
+}
+
+extension String {
+    fileprivate func trimmingSuffix(_ suffix: String) -> String {
+        if self.hasSuffix(suffix) {
+            var copy = self
+            copy.removeLast(suffix.count)
+            return copy
+        }
+        return self
     }
 }
