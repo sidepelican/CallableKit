@@ -1,4 +1,5 @@
 import APIDefinition
+import CallableKit
 import Foundation
 import OtherDependency
 

@@ -1,19 +1,10 @@
 import ArgumentParser
-import CallableKit
+import CodegenImpl
 import Foundation
 
 @main struct Codegen: ParsableCommand {
     @Option(help: "generate client stub", completion: .directory)
     var client_out: URL?
-
-    @Option(help: "generate service middleware code", completion: .directory)
-    var middleware_out: URL?
-
-    @Option(help: "generate routing code for vipor", completion: .directory)
-    var vapor_out: URL?
-
-    @Option(help: "generate routing code for hummingbird", completion: .directory)
-    var hb_out: URL?
 
     @Option(help: "generate client stub for typescript", completion: .directory)
     var ts_out: URL?
@@ -34,9 +25,6 @@ import Foundation
         try Runner(
             definitionDirectory: definitionDirectory,
             clientOut: client_out,
-            middlewareOut: middleware_out,
-            vaporOut: vapor_out,
-            hbOut: hb_out,
             tsOut: ts_out,
             module: module,
             dependencies: dependency,
@@ -45,7 +33,7 @@ import Foundation
     }
 }
 
-extension URL: ExpressibleByArgument {
+extension URL: ArgumentParser.ExpressibleByArgument {
     public init?(argument: String) {
         self = URL(fileURLWithPath: argument)
     }

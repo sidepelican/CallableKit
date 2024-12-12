@@ -1,4 +1,5 @@
 import APIDefinition
+import CallableKit
 import Foundation
 
 public struct EchoServiceStub<C: StubClientProtocol>: EchoServiceProtocol, Sendable {

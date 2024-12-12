@@ -1,45 +1,50 @@
+import APIDefinition
+import CallableKitHummingbirdTransport
 import Foundation
+import Logging
 import Hummingbird
-import NIOFoundationCompat
 import Service
 
-struct ErrorMiddleware: HBMiddleware {
-    func apply(to request: HBRequest, next: HBResponder) -> EventLoopFuture<HBResponse> {
-        next.respond(to: request).flatMapErrorThrowing { error in
-            request.logger.error("\(error)")
-            struct ErrorFrame: Encodable {
-                var errorMessage: String
-            }
+struct ErrorFrame: Encodable {
+    var errorMessage: String
+}
+
+struct ErrorMiddleware<Context: RequestContext>: MiddlewareProtocol {
+    func handle(_ input: Request, context: Context, next: (Request, Context) async throws -> Response) async throws -> Response {
+        do {
+            return try await next(input, context)
+        } catch {
+            context.logger.error("\(error)")
             let errorFrame = ErrorFrame(errorMessage: "\(error)")
-            var headers = HTTPHeaders()
-            headers.add(name: "Content-Type", value: "application/json")
-            headers.add(name: "Cache-Control", value: "no-store")
-            let body = (try? JSONEncoder().encode(errorFrame)) ?? .init()
-            return HBResponse(status: .internalServerError, headers: headers, body: .byteBuffer(.init(data: body)))
+            var response = try JSONEncoder().encode(errorFrame, from: input, context: context)
+            response.headers[.cacheControl] = "no-store"
+            return response
         }
     }
 }
 
 @main struct Main {
     static func main() async throws {
-        let app = HBApplication(
-            configuration: .init(
-                address: .hostname("127.0.0.1", port: 8080),
-                logLevel: .error
-            )
-        )
-        defer { app.stop() }
+        let router = Router()
+        router.add(middleware: ErrorMiddleware())
 
-        let router = app.router.group().add(middleware: ErrorMiddleware())
-
-        configureAccountService(builder: { req in
+        configureAccountServiceProtocol(transport: HummingbirdTransport(router: router) { _, _ in
             makeAccountService()
-        }, router: router)
-
-        configureEchoService(builder: { req in
+        })
+        configureEchoServiceProtocol(transport: HummingbirdTransport(router: router) { _, _ in
             makeEchoService()
-        }, router: router)
+        })
 
-        try await app.asyncRun()
+        var logger = Logger(label: "Hummingbird")
+        logger.logLevel = .error
+        let app = Application(
+            router: router,
+            configuration: .init(
+                address: .hostname("127.0.0.1", port: 8080)
+            ),
+            logger: logger
+        )
+
+        try await app.runService()
     }
 }

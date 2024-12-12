@@ -9,16 +9,15 @@ on:
 
 jobs:
   build_and_test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     defaults:
       run:
         working-directory: example
     steps:
-    - uses: swift-actions/setup-swift@v1
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 20
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: npm ci
       working-directory: example/TSClient
     - run: ./test.sh vapor

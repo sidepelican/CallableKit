@@ -16,7 +16,11 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
                 request.addValue("Bearer xxxxxxxxxxxx", forHTTPHeaderField: "Authorization")
             },
             mapResponseError: { error in
-                throw try JSONDecoder().decode(ErrorFrame.self, from: error.body)
+                do {
+                    throw try JSONDecoder().decode(ErrorFrame.self, from: error.body)
+                } catch let decodingError {
+                    throw ErrorFrame(errorMessage: "\(decodingError), body=\(String(data: error.body, encoding: .utf8) ?? "")")
+                }
             }
         )
 
