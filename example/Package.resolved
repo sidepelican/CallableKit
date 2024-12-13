@@ -1,5 +1,5 @@
 {
-  "originHash" : "72222c8a5eb70b05fc61636aee7c555f6591c06635ec1a72b200e8f1ece362cb",
+  "originHash" : "f17cbec788f41a8520f2a0678c0cafe43ec3cc9c912babd1084f8df66e461370",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/CodableToTypeScript",
       "state" : {
-        "revision" : "8654d6ff35c9823cff38a6f9dd2aa0e6aed2769b",
-        "version" : "2.11.0"
+        "revision" : "e5a24cd47970a97700223fbfa6ba5d52113a0273",
+        "version" : "3.0.1"
       }
     },
     {
@@ -247,10 +247,10 @@
     {
       "identity" : "swifttypereader",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/omochi/SwiftTypeReader",
+      "location" : "https://github.com/omochi/SwiftTypeReader.git",
       "state" : {
-        "revision" : "12390490318962cad1b82a5d4ee57363ff2dbdcf",
-        "version" : "2.8.0"
+        "revision" : "be6697207cd9ed660499ea1a180919be8c857b8e",
+        "version" : "3.1.0"
       }
     },
     {
@@ -258,8 +258,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/TypeScriptAST",
       "state" : {
-        "revision" : "c64e4a060a3daa9f8c964699ca4d8210235df20b",
-        "version" : "1.8.7"
+        "revision" : "4f6420d45d6dabc79b30954ea3aa524b7810a68b",
+        "version" : "2.0.1"
       }
     },
     {

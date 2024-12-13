@@ -12,22 +12,22 @@ export type CodableResult<T, E> = ({
     };
 }) & TagRecord<"CodableResult", [T, E]>;
 
-export type CodableResult_JSON<T_JSON, E_JSON> = {
+export type CodableResult$JSON<T$JSON, E$JSON> = {
     success: {
-        _0: T_JSON;
+        _0: T$JSON;
     };
 } | {
     failure: {
-        _0: E_JSON;
+        _0: E$JSON;
     };
 };
 
 export function CodableResult_decode<
     T,
-    T_JSON,
+    T$JSON,
     E,
-    E_JSON
->(json: CodableResult_JSON<T_JSON, E_JSON>, T_decode: (json: T_JSON) => T, E_decode: (json: E_JSON) => E): CodableResult<T, E> {
+    E$JSON
+>(json: CodableResult$JSON<T$JSON, E$JSON>, T_decode: (json: T$JSON) => T, E_decode: (json: E$JSON) => E): CodableResult<T, E> {
     if ("success" in json) {
         const j = json.success;
         const _0 = T_decode(j._0);
@@ -53,10 +53,10 @@ export function CodableResult_decode<
 
 export function CodableResult_encode<
     T,
-    T_JSON,
+    T$JSON,
     E,
-    E_JSON
->(entity: CodableResult<T, E>, T_encode: (entity: T) => T_JSON, E_encode: (entity: E) => E_JSON): CodableResult_JSON<T_JSON, E_JSON> {
+    E$JSON
+>(entity: CodableResult<T, E>, T_encode: (entity: T) => T$JSON, E_encode: (entity: E) => E$JSON): CodableResult$JSON<T$JSON, E$JSON> {
     switch (entity.kind) {
     case "success":
         {

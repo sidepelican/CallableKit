@@ -13,7 +13,7 @@ public struct CallableMacro: PeerMacro {
         }
 
         let protocolName = `protocol`.name.trimmedDescription
-        let serviceName = protocolName.replacingOccurrences(of: "ServiceProtocol", with: "")
+        let serviceName = protocolName.trimmingSuffix("Protocol").trimmingSuffix("Service")
 
         let functions = `protocol`.memberBlock.members.compactMap { item in
             return item.decl.as(FunctionDeclSyntax.self)
@@ -40,5 +40,16 @@ public struct CallableMacro: PeerMacro {
         }
 
         return [DeclSyntax(configureFunc)]
+    }
+}
+
+extension String {
+    fileprivate func trimmingSuffix(_ suffix: String) -> String {
+        if self.hasSuffix(suffix) {
+            var copy = self
+            copy.removeLast(suffix.count)
+            return copy
+        }
+        return self
     }
 }
