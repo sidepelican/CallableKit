@@ -2,7 +2,7 @@ import APIDefinition
 import CallableKit
 import Foundation
 
-public struct EchoServiceStub<C: StubClientProtocol>: EchoServiceProtocol, Sendable {
+public struct EchoServiceProtocolStub<C: StubClientProtocol>: EchoServiceProtocol, Sendable {
     private let client: C
     public init(client: C) {
         self.client = client
@@ -37,11 +37,5 @@ public struct EchoServiceStub<C: StubClientProtocol>: EchoServiceProtocol, Senda
     }
     public func testRawRepr4(request: Student5) async throws -> Student5 {
         return try await client.send(path: "Echo/testRawRepr4", request: request)
-    }
-}
-
-extension StubClientProtocol {
-    public var echo: EchoServiceStub<Self> {
-        EchoServiceStub(client: self)
     }
 }

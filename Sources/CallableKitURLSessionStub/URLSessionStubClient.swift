@@ -1,42 +1,43 @@
-#if !DISABLE_FOUNDATION_NETWORKING
+import CallableKit
 import Foundation
 #if canImport(FoundationNetworking)
 @preconcurrency import FoundationNetworking
 #endif
 
-enum FoundationHTTPStubClientError: Error {
-    case unexpectedState
-    case unexpectedStatusCode(_ code: Int)
-}
-
-struct FoundationHTTPStubResponseError: Error, CustomStringConvertible {
-    var path: String
-    var body: Data
-    var request: URLRequest
-    var response: HTTPURLResponse
-    var description: String {
-        "ResponseError. path=\(path), status=\(response.statusCode)"
+public struct URLSessionStubClient: StubClientProtocol {
+    public enum UnexpectedError: Error {
+        case state
+        case statusCode(_ code: Int)
     }
-}
 
-final class FoundationHTTPStubClient: StubClientProtocol {
-    private let baseURL: URL
-    private let session: URLSession
-    private let onWillSendRequest: (@Sendable (inout URLRequest) async throws -> Void)?
-    private let mapResponseError: (@Sendable (FoundationHTTPStubResponseError) throws -> Never)?
+    public struct ResponseError: Error, CustomStringConvertible {
+        public var path: String
+        public var body: Data
+        public var request: URLRequest
+        public var response: HTTPURLResponse
+        public var description: String {
+            "ResponseError. path=\(path), status=\(response.statusCode)"
+        }
+    }
 
-    init(
+    public var baseURL: URL
+    public var session: URLSession
+    public var onWillSendRequest: (@Sendable (inout URLRequest) async throws -> Void)?
+    public var mapResponseError: (@Sendable (ResponseError) throws -> Never)?
+
+    public init(
         baseURL: URL,
+        session: URLSession = .init(configuration: .ephemeral),
         onWillSendRequest: (@Sendable (inout URLRequest) async throws -> Void)? = nil,
-        mapResponseError: (@Sendable (FoundationHTTPStubResponseError) throws -> Never)? = nil
+        mapResponseError: (@Sendable (ResponseError) throws -> Never)? = nil
     ) {
         self.baseURL = baseURL
-        session = .init(configuration: .ephemeral)
+        self.session = session
         self.onWillSendRequest = onWillSendRequest
         self.mapResponseError = mapResponseError
     }
 
-    func send<Req: Encodable, Res: Decodable>(
+    public func send<Req: Encodable, Res: Decodable>(
         path: String,
         request: Req
     ) async throws -> Res {
@@ -48,7 +49,7 @@ final class FoundationHTTPStubClient: StubClientProtocol {
         q.addValue("\(body.count)", forHTTPHeaderField: "Content-Length")
         q.httpBody = body
 
-        if let onWillSendRequest = onWillSendRequest {
+        if let onWillSendRequest {
             try await onWillSendRequest(&q)
         }
         let (data, urlResponse) = try await session.data(for: q)
@@ -62,25 +63,25 @@ final class FoundationHTTPStubClient: StubClientProtocol {
         request: URLRequest
     ) throws -> Res {
         guard let urlResponse = response as? HTTPURLResponse else {
-            throw FoundationHTTPStubClientError.unexpectedState
+            throw UnexpectedError.state
         }
 
         if 200...299 ~= urlResponse.statusCode {
             return try makeDecoder().decode(Res.self, from: data)
         } else if 400...599 ~= urlResponse.statusCode {
-            let error = FoundationHTTPStubResponseError(
+            let error = ResponseError(
                 path: path,
                 body: data,
                 request: request,
                 response: urlResponse
             )
-            if let mapResponseError = mapResponseError {
+            if let mapResponseError {
                 try mapResponseError(error)
             } else {
                 throw error
             }
         } else {
-            throw FoundationHTTPStubClientError.unexpectedStatusCode(urlResponse.statusCode)
+            throw UnexpectedError.statusCode(urlResponse.statusCode)
         }
     }
 }
@@ -98,13 +99,9 @@ private func makeEncoder() -> JSONEncoder {
 }
 
 #if canImport(FoundationNetworking)
-private class TaskBox: @unchecked Sendable {
-    var task: URLSessionTask?
-}
-
 extension URLSession {
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        let taskBox = TaskBox()
+        nonisolated(unsafe) var taskBox: URLSessionTask?
         return try await withTaskCancellationHandler(operation: {
             try await withCheckedThrowingContinuation { continuation in
                 let task = dataTask(with: request) { data, response, error in
@@ -115,13 +112,12 @@ extension URLSession {
                     }
                     return continuation.resume(returning: (data, response))
                 }
-                taskBox.task = task
+                taskBox = task
                 task.resume()
             }
         }, onCancel: {
-            taskBox.task?.cancel()
+            taskBox?.cancel()
         })
     }
 }
-#endif
 #endif

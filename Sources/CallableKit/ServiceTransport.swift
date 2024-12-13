@@ -22,9 +22,6 @@ public protocol ServiceTransport<Service> {
     )
 }
 
-fileprivate struct _Empty: Codable, Sendable {
-}
-
 extension ServiceTransport {
     public func register<Request: Decodable>(
         path: String,
@@ -32,9 +29,9 @@ extension ServiceTransport {
     ) {
         register(path: path) { (serviceType) in
             { (service: Service) in
-                { (request: Request) -> _Empty in
+                { (request: Request) -> CallableKitEmpty in
                     try await methodSelector(serviceType)(service)(request)
-                    return _Empty()
+                    return CallableKitEmpty()
                 }
             }
         }
@@ -46,7 +43,7 @@ extension ServiceTransport {
     ) {
         register(path: path) { (serviceType) in
             { (service: Service) in
-                { (_: _Empty) -> Response in
+                { (_: CallableKitEmpty) -> Response in
                     return try await methodSelector(serviceType)(service)()
                 }
             }
@@ -59,9 +56,9 @@ extension ServiceTransport {
     ) {
         register(path: path) { (serviceType) in
             { (service: Service) in
-                { (_: _Empty) -> _Empty  in
+                { (_: CallableKitEmpty) -> CallableKitEmpty  in
                     try await methodSelector(serviceType)(service)()
-                    return _Empty()
+                    return CallableKitEmpty()
                 }
             }
         }

@@ -1,5 +1,7 @@
-import Foundation
 import APIDefinition
+import CallableKit
+import CallableKitURLSessionStub
+import Foundation
 
 struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
     var errorMessage: String
@@ -10,7 +12,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
 
 @main struct Main {
     static func main() async throws {
-        let client: some StubClientProtocol = FoundationHTTPStubClient(
+        let client: some StubClientProtocol = URLSessionStubClient(
             baseURL: URL(string: "http://127.0.0.1:8080")!,
             onWillSendRequest: { request in
                 request.addValue("Bearer xxxxxxxxxxxx", forHTTPHeaderField: "Authorization")
@@ -23,24 +25,26 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
                 }
             }
         )
+        let echoClient = EchoServiceProtocolStub(client: client)
+        let accountClient = AccountServiceProtocolStub(client: client)
 
         do {
-            let res = try await client.echo.hello(request: .init(name: "Swift"))
+            let res = try await echoClient.hello(request: .init(name: "Swift"))
             print(res.message)
         }
 
         do {
-            let res = try await client.echo.tommorow(from: Date())
+            let res = try await echoClient.tommorow(from: Date())
             print(res)
         }
 
         do {
-            let res = try await client.echo.testTypicalEntity(request: .init(id: .init(rawValue: "id"), name: "name"))
+            let res = try await echoClient.testTypicalEntity(request: .init(id: .init(rawValue: "id"), name: "name"))
             dump(res)
         }
 
         do {
-            let res = try await client.echo.testComplexType(request: .init(a: .some(.init(x: [
+            let res = try await echoClient.testComplexType(request: .init(a: .some(.init(x: [
                 .k(.init(x: .init(x: "hello"))),
                 .i(100),
                 .n,
@@ -50,7 +54,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
         }
 
         do {
-            try await client.echo.emptyRequestAndResponse()
+            try await echoClient.emptyRequestAndResponse()
         }
 
         do {
@@ -58,7 +62,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
                 id: Student.ID(rawValue: "0001"),
                 name: "taro"
             )
-            let res = try await client.echo.testTypeAliasToRawRepr(request: student)
+            let res = try await echoClient.testTypeAliasToRawRepr(request: student)
             dump(res)
         }
 
@@ -67,7 +71,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
                 id: Student2.ID(rawValue: "0002"),
                 name: "taro"
             )
-            let res = try await client.echo.testRawRepr(request: student)
+            let res = try await echoClient.testRawRepr(request: student)
             dump(res)
         }
 
@@ -76,7 +80,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
                 id: Student3.ID(rawValue: .id("0003")),
                 name: "taro"
             )
-            let res = try await client.echo.testRawRepr2(request: student)
+            let res = try await echoClient.testRawRepr2(request: student)
             dump(res)
         }
 
@@ -85,7 +89,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
                 id: Student4.ID(rawValue: .init(rawValue: .id("0004"))),
                 name: "taro"
             )
-            let res = try await client.echo.testRawRepr3(request: student)
+            let res = try await echoClient.testRawRepr3(request: student)
             dump(res)
         }
 
@@ -94,12 +98,12 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
                 id: Student5.ID(rawValue: "0005"),
                 name: "taro"
             )
-            let res = try await client.echo.testRawRepr4(request: student)
+            let res = try await echoClient.testRawRepr4(request: student)
             dump(res)
         }
 
         do {
-            let res = try await client.account.signin(request: .init(
+            let res = try await accountClient.signin(request: .init(
                 email: "example@example.com",
                 password: "password"
             ))

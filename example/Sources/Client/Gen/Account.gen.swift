@@ -3,7 +3,7 @@ import CallableKit
 import Foundation
 import OtherDependency
 
-public struct AccountServiceStub<C: StubClientProtocol>: AccountServiceProtocol, Sendable {
+public struct AccountServiceProtocolStub<C: StubClientProtocol>: AccountServiceProtocol, Sendable {
     private let client: C
     public init(client: C) {
         self.client = client
@@ -14,8 +14,3 @@ public struct AccountServiceStub<C: StubClientProtocol>: AccountServiceProtocol,
     }
 }
 
-extension StubClientProtocol {
-    public var account: AccountServiceStub<Self> {
-        AccountServiceStub(client: self)
-    }
-}
