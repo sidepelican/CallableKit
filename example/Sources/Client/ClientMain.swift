@@ -10,7 +10,7 @@ struct ErrorFrame: Decodable, CustomStringConvertible, LocalizedError {
     var errorDescription: String? { description }
 }
 
-@main struct Main {
+@main struct ClientMain {
     static func main() async throws {
         let client: some StubClientProtocol = URLSessionStubClient(
             baseURL: URL(string: "http://127.0.0.1:8080")!,

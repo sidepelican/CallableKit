@@ -1,12 +1,12 @@
 public protocol ServiceTransport<Service> {
     associatedtype Service
 
-    func register<Request: Decodable>(
+    func register<Request: Decodable & Sendable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Void
     )
 
-    func register<Response: Encodable>(
+    func register<Response: Encodable & Sendable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> () async throws -> Response
     )
@@ -16,14 +16,14 @@ public protocol ServiceTransport<Service> {
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> () async throws -> Void
     )
 
-    func register<Request: Decodable, Response: Encodable>(
+    func register<Request: Decodable & Sendable, Response: Encodable & Sendable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Response
     )
 }
 
 extension ServiceTransport {
-    @inlinable public func register<Request: Decodable>(
+    @inlinable public func register<Request: Decodable & Sendable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Void
     ) {
@@ -37,7 +37,7 @@ extension ServiceTransport {
         }
     }
 
-    @inlinable public func register<Response: Encodable>(
+    @inlinable public func register<Response: Encodable & Sendable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> () async throws -> Response
     ) {
