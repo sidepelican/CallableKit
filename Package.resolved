@@ -1,5 +1,5 @@
 {
-  "originHash" : "958802e817d78436496ee4503e1c3cadce381499bd28d730810fcc15715bf1bd",
+  "originHash" : "49e633b3248491775b3e78a39e2300b207ade2ef8c7fa57307d0e1c93efa8d02",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -258,8 +258,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/omochi/SwiftTypeReader.git",
       "state" : {
-        "branch" : "attributes",
-        "revision" : "c89ae6dfab1b0e6c2552ac100578cec6e4470181"
+        "revision" : "be6697207cd9ed660499ea1a180919be8c857b8e",
+        "version" : "3.1.0"
       }
     },
     {

@@ -16,7 +16,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1"),
         .package(url: "https://github.com/omochi/CodableToTypeScript.git", from: "3.0.1"),
-        .package(url: "https://github.com/omochi/SwiftTypeReader.git", branch: "attributes"),
+        .package(url: "https://github.com/omochi/SwiftTypeReader.git", from: "3.1.0"),
         .package(url: "https://github.com/vapor/vapor.git", from: "4.106.7"),
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.5.0"),
     ],
