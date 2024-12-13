@@ -39,7 +39,32 @@ public struct CallableMacro: PeerMacro {
             }
         }
 
-        return [DeclSyntax(configureFunc)]
+        let stubStruct = try StructDeclSyntax("public struct \(raw: protocolName)Stub<C: StubClientProtocol>: \(raw: protocolName), Sendable") {
+            VariableDeclSyntax(
+                modifiers: [.init(name: .keyword(.private))],
+                .let,
+                name: "client" as PatternSyntax,
+                type: TypeAnnotationSyntax(type: "C" as TypeSyntax)
+            )
+            try InitializerDeclSyntax("public init(client: C)") {
+                "self.client = client"
+            }
+            for function in functions {
+                function
+                    .with(\.leadingTrivia, [])
+                    .with(\.modifiers, [.init(name: .keyword(.public))])
+                    .with(\.body, CodeBlockSyntax {
+                        if let param = function.signature.parameterClause.parameters.first {
+                            let argName = param.secondName ?? param.firstName
+                            #"return try await client.send(path: "\#(raw: serviceName)/\#(function.name)", request: \#(argName))"#
+                        } else {
+                            #"return try await client.send(path: "\#(raw: serviceName)/\#(function.name)")"#
+                        }
+                    })
+            }
+        }
+
+        return [DeclSyntax(configureFunc), DeclSyntax(stubStruct)]
     }
 }
 
@@ -53,3 +78,14 @@ extension String {
         return self
     }
 }
+
+//public struct AccountServiceProtocolStub<C: StubClientProtocol>: AccountServiceProtocol, Sendable {
+//    private let client: C
+//    public init(client: C) {
+//        self.client = client
+//    }
+//
+//    public func signin(request: AccountSignin.Request) async throws -> CodableResult<AccountSignin.Response, SubmitError<AccountSignin.Error>> {
+//        return try await client.send(path: "Account/signin", request: request)
+//    }
+//}
