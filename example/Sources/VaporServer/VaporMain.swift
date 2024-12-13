@@ -25,7 +25,7 @@ import Service
 
         app.group(myErrorMiddleware) { routes in
             configureAccountServiceProtocol(transport: VaporTransport(router: routes) { _ in
-                makeAccountService()
+                try await makeAccountService()
             })
             configureEchoServiceProtocol(transport: VaporTransport(router: routes) { _ in
                 makeEchoService()

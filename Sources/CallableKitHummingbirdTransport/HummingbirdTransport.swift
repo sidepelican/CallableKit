@@ -3,13 +3,13 @@ import Foundation
 import Hummingbird
 
 public struct HummingbirdTransport<Router: RouterMethods, Service>: ServiceTransport {
-    public init(router: Router, serviceBuilder: @escaping @Sendable (Request, Router.Context) -> Service) {
+    public init(router: Router, serviceBuilder: @escaping @Sendable (Request, Router.Context) async throws -> Service) {
         self.router = router
         self.serviceBuilder = serviceBuilder
     }
     
     public var router: Router
-    public var serviceBuilder: @Sendable (Request, Router.Context) -> Service
+    public var serviceBuilder: @Sendable (Request, Router.Context) async throws -> Service
 
     public func register<Request: Decodable, Response: Encodable>(
         path: String,
@@ -17,7 +17,7 @@ public struct HummingbirdTransport<Router: RouterMethods, Service>: ServiceTrans
     ) {
         router.post(RouterPath(path)) { [serviceBuilder] request, context in
             let serviceRequest = try await makeDecoder().decode(Request.self, from: request, context: context)
-            let service = serviceBuilder(request, context)
+            let service = try await serviceBuilder(request, context)
             let serviceResponse = try await methodSelector(Service.self)(service)(serviceRequest)
             var response = try makeEncoder().encode(serviceResponse, from: request, context: context)
             response.headers[.cacheControl] = "no-store"

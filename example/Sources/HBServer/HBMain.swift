@@ -29,7 +29,7 @@ struct ErrorMiddleware<Context: RequestContext>: MiddlewareProtocol {
         router.add(middleware: ErrorMiddleware())
 
         configureAccountServiceProtocol(transport: HummingbirdTransport(router: router) { _, _ in
-            makeAccountService()
+            try await makeAccountService()
         })
         configureEchoServiceProtocol(transport: HummingbirdTransport(router: router) { _, _ in
             makeEchoService()
