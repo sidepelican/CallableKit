@@ -3,9 +3,6 @@ import CodegenImpl
 import Foundation
 
 @main struct Codegen: ParsableCommand {
-    @Option(help: "generate client stub", completion: .directory)
-    var client_out: URL?
-
     @Option(help: "generate client stub for typescript", completion: .directory)
     var ts_out: URL?
 
@@ -24,7 +21,6 @@ import Foundation
     mutating func run() throws {
         try Runner(
             definitionDirectory: definitionDirectory,
-            clientOut: client_out,
             tsOut: ts_out,
             module: module,
             dependencies: dependency,

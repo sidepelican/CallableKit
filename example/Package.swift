@@ -67,11 +67,10 @@ let package = Package(
         .executableTarget(
             name: "Client",
             dependencies: [
+                .product(name: "CallableKitURLSessionStub", package: "CallableKit"),
                 "APIDefinition",
             ],
-            swiftSettings: [
-                .unsafeFlags(["-strict-concurrency=complete"]),
-            ]
+            swiftSettings: swiftSettings()
         ),
         .plugin(
             name: "CodegenPlugin",

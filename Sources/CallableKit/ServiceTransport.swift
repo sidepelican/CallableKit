@@ -22,46 +22,43 @@ public protocol ServiceTransport<Service> {
     )
 }
 
-fileprivate struct _Empty: Codable, Sendable {
-}
-
 extension ServiceTransport {
-    public func register<Request: Decodable>(
+    @inlinable public func register<Request: Decodable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Void
     ) {
         register(path: path) { (serviceType) in
             { (service: Service) in
-                { (request: Request) -> _Empty in
+                { (request: Request) -> CallableKitEmpty in
                     try await methodSelector(serviceType)(service)(request)
-                    return _Empty()
+                    return CallableKitEmpty()
                 }
             }
         }
     }
 
-    public func register<Response: Encodable>(
+    @inlinable public func register<Response: Encodable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> () async throws -> Response
     ) {
         register(path: path) { (serviceType) in
             { (service: Service) in
-                { (_: _Empty) -> Response in
+                { (_: CallableKitEmpty) -> Response in
                     return try await methodSelector(serviceType)(service)()
                 }
             }
         }
     }
 
-    public func register(
+    @inlinable public func register(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> () async throws -> Void
     ) {
         register(path: path) { (serviceType) in
             { (service: Service) in
-                { (_: _Empty) -> _Empty  in
+                { (_: CallableKitEmpty) -> CallableKitEmpty  in
                     try await methodSelector(serviceType)(service)()
-                    return _Empty()
+                    return CallableKitEmpty()
                 }
             }
         }

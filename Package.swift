@@ -11,6 +11,7 @@ let package = Package(
         .library(name: "CallableKit", targets: ["CallableKit"]),
         .library(name: "CallableKitVaporTransport", targets: ["CallableKitVaporTransport"]),
         .library(name: "CallableKitHummingbirdTransport", targets: ["CallableKitHummingbirdTransport"]),
+        .library(name: "CallableKitURLSessionStub", targets: ["CallableKitURLSessionStub"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
@@ -63,6 +64,12 @@ let package = Package(
             name: "CallableKitHummingbirdTransport",
             dependencies: [
                 .product(name: "Hummingbird", package: "hummingbird"),
+                "CallableKit",
+            ]
+        ),
+        .target(
+            name: "CallableKitURLSessionStub",
+            dependencies: [
                 "CallableKit",
             ]
         )
