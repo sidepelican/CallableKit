@@ -3,7 +3,7 @@ import CallableKitVaporTransport
 import Vapor
 import Service
 
-@main struct Main {
+@main struct VaporMain {
     static func main() async throws {
         let app = try await Application.make()
 

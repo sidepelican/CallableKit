@@ -23,7 +23,7 @@ struct ErrorMiddleware<Context: RequestContext>: MiddlewareProtocol {
     }
 }
 
-@main struct Main {
+@main struct HBMain {
     static func main() async throws {
         let router = Router()
         router.add(middleware: ErrorMiddleware())
