@@ -1,7 +1,7 @@
 import APIDefinition
 import OtherDependency
 
-public func makeAccountService() -> some AccountServiceProtocol {
+public func makeAccountService() async throws -> some AccountServiceProtocol {
     AccountService()
 }
 

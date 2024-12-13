@@ -2,13 +2,13 @@ import CallableKit
 import Vapor
 
 public struct VaporTransport<Service>: ServiceTransport {
-    public init(router: any RoutesBuilder, serviceBuilder: @escaping @Sendable (Request) -> Service) {
+    public init(router: any RoutesBuilder, serviceBuilder: @escaping @Sendable (Request) async throws -> Service) {
         self.router = router
         self.serviceBuilder = serviceBuilder
     }
     
     public var router: any RoutesBuilder
-    public var serviceBuilder: @Sendable (Request) -> Service
+    public var serviceBuilder: @Sendable (Request) async throws -> Service
 
     public func register<Request: Decodable, Response: Encodable>(
         path: String,
@@ -19,7 +19,7 @@ public struct VaporTransport<Service>: ServiceTransport {
                 throw Abort(.badRequest, reason: "no body")
             }
             let serviceRequest = try makeDecoder().decode(Request.self, from: body)
-            let service = serviceBuilder(request)
+            let service = try await serviceBuilder(request)
             let serviceResponse = try await methodSelector(Service.self)(service)(serviceRequest)
 
             var headers = HTTPHeaders()
