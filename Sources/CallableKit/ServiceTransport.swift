@@ -23,7 +23,7 @@ public protocol ServiceTransport<Service> {
 }
 
 extension ServiceTransport {
-    public func register<Request: Decodable>(
+    @inlinable public func register<Request: Decodable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> (Request) async throws -> Void
     ) {
@@ -37,7 +37,7 @@ extension ServiceTransport {
         }
     }
 
-    public func register<Response: Encodable>(
+    @inlinable public func register<Response: Encodable>(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> () async throws -> Response
     ) {
@@ -50,7 +50,7 @@ extension ServiceTransport {
         }
     }
 
-    public func register(
+    @inlinable public func register(
         path: String,
         methodSelector: @escaping @Sendable (Service.Type) -> (Service) -> () async throws -> Void
     ) {

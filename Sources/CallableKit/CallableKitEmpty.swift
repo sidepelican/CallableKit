@@ -1,1 +1,3 @@
-internal struct CallableKitEmpty: Codable {}
+@usableFromInline internal struct CallableKitEmpty: Codable {
+    @usableFromInline init() {}
+}
