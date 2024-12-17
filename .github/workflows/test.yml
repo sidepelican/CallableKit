@@ -18,7 +18,7 @@ jobs:
         working-directory: example
     steps:
     - uses: actions/checkout@v4
-    - run: swift build
+    - run: swift test
     # - run: npm ci
     #   working-directory: example/TSClient
     # - run: ./test.sh vapor

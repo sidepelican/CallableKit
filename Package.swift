@@ -28,11 +28,18 @@ let package = Package(
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             ]
         ),
+        .testTarget(
+            name: "CallableKitMacrosTests",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+                "CallableKitMacros",
+            ]
+        ),
         .target(
             name: "CallableKitURLSessionStub",
             dependencies: [
                 "CallableKit",
             ]
-        )
+        ),
     ]
 )
