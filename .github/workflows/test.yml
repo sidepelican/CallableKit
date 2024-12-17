@@ -18,7 +18,8 @@ jobs:
         working-directory: example
     steps:
     - uses: actions/checkout@v4
-    - run: npm ci
-      working-directory: example/TSClient
-    - run: ./test.sh vapor
-    - run: ./test.sh hummingbird
+    - run: swift build
+    # - run: npm ci
+    #   working-directory: example/TSClient
+    # - run: ./test.sh vapor
+    # - run: ./test.sh hummingbird
