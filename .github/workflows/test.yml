@@ -16,7 +16,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - run: swift test
-    # - run: npm ci
-    #   working-directory: example/TSClient
-    # - run: ./test.sh vapor
-    # - run: ./test.sh hummingbird
+    - run: npm ci
+      working-directory: example/TSClient
+    - run: ./test.sh vapor
+      working-directory: example
+    - run: ./test.sh hummingbird
+      working-directory: example
+ 
