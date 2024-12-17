@@ -42,6 +42,6 @@ extension StubClientProtocol {
     @inlinable public func send(
         path: String
     ) async throws {
-        _ = try await send(path: path, request: CallableKitEmpty())
+        _ = try await send(path: path, request: CallableKitEmpty()) as CallableKitEmpty
     }
 }

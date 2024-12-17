@@ -13,12 +13,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-    defaults:
-      run:
-        working-directory: example
     steps:
     - uses: actions/checkout@v4
-    - run: npm ci
-      working-directory: example/TSClient
-    - run: ./test.sh vapor
-    - run: ./test.sh hummingbird
+    - run: swift test
+    # - run: npm ci
+    #   working-directory: example/TSClient
+    # - run: ./test.sh vapor
+    # - run: ./test.sh hummingbird
