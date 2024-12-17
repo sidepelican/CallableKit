@@ -1,5 +1,5 @@
 {
-  "originHash" : "f17cbec788f41a8520f2a0678c0cafe43ec3cc9c912babd1084f8df66e461370",
+  "originHash" : "42d8ad0a61f47093d5f11de7a70d56828bddf5c8308092d6e573fa04a7e84d05",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -17,6 +17,33 @@
       "state" : {
         "revision" : "eab9edff78e8ace20bd7cb6e792ab46d54f59ab9",
         "version" : "1.18.0"
+      }
+    },
+    {
+      "identity" : "callablekitcodegen",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sidepelican/CallableKitCodegen.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "3886d8822d49c9b3e917b07b72fa42b65d3b805d"
+      }
+    },
+    {
+      "identity" : "callablekithummingbirdtransport",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sidepelican/CallableKitHummingbirdTransport.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "855d34b06f28b232addbec2850ee10f837f4d43f"
+      }
+    },
+    {
+      "identity" : "callablekitvaportransport",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sidepelican/CallableKitVaporTransport.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "c8bacae8a9c86f0e4ab10e2d092d34564747ad54"
       }
     },
     {
@@ -76,10 +103,10 @@
     {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-argument-parser",
+      "location" : "https://github.com/apple/swift-argument-parser.git",
       "state" : {
-        "revision" : "fee6933f37fde9a5e12a1e4aeaa93fe60116ff2a",
-        "version" : "1.2.2"
+        "revision" : "41982a3656a71c768319979febd796c6fd111d5c",
+        "version" : "1.5.0"
       }
     },
     {

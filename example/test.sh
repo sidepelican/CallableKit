@@ -1,6 +1,9 @@
 #!/bin/bash -ue
 set -o pipefail
 
+set +e
+swift package edit --path ../ CallableKit
+set -e
 swift package --allow-writing-to-package-directory codegen
 swift build
 

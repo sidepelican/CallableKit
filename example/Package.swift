@@ -27,7 +27,10 @@ let package = Package(
     name: "MyApplication",
     platforms: [.macOS(.v14)],
     dependencies: [
-        .package(path: "../"),
+        .package(url: "https://github.com/sidepelican/CallableKit.git", branch: "main"),
+        .package(url: "https://github.com/sidepelican/CallableKitCodegen.git", branch: "main"),
+        .package(url: "https://github.com/sidepelican/CallableKitVaporTransport.git", branch: "main"),
+        .package(url: "https://github.com/sidepelican/CallableKitHummingbirdTransport.git", branch: "main"),
         .package(url: "https://github.com/vapor/vapor.git", from: "4.106.7"),
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.5.0"),
     ],
@@ -50,7 +53,7 @@ let package = Package(
             name: "VaporServer",
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
-                .product(name: "CallableKitVaporTransport", package: "CallableKit"),
+                .product(name: "CallableKitVaporTransport", package: "CallableKitVaporTransport"),
                 "Service",
             ],
             swiftSettings: swiftSettings()
@@ -59,7 +62,7 @@ let package = Package(
             name: "HBServer",
             dependencies: [
                 .product(name: "Hummingbird", package: "hummingbird"),
-                .product(name: "CallableKitHummingbirdTransport", package: "CallableKit"),
+                .product(name: "CallableKitHummingbirdTransport", package: "CallableKitHummingbirdTransport"),
                 "Service",
             ],
             swiftSettings: swiftSettings()
@@ -79,7 +82,7 @@ let package = Package(
                 permissions: [.writeToPackageDirectory(reason: "Place generated code")]
             ),
             dependencies: [
-                .product(name: "codegen", package: "CallableKit"),
+                .product(name: "codegen", package: "CallableKitCodegen"),
             ]
         )
     ]
