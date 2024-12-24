@@ -98,6 +98,7 @@ private func makeEncoder() -> JSONEncoder {
     return encoder
 }
 
+#if compiler(<6.0)
 #if canImport(FoundationNetworking)
 extension URLSession {
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
@@ -120,4 +121,5 @@ extension URLSession {
         })
     }
 }
+#endif
 #endif
