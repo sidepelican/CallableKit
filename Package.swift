@@ -6,8 +6,8 @@ import PackageDescription
 let package = Package(
     name: "CallableKit",
     platforms: [
-        .macOS(.v10_15),
-        .iOS(.v13),
+        .macOS(.v14),
+        .iOS(.v15),
         .tvOS(.v13),
         .watchOS(.v6),
         .macCatalyst(.v13),
