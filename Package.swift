@@ -10,7 +10,7 @@ let package = Package(
         .iOS(.v15),
         .tvOS(.v13),
         .watchOS(.v6),
-        .macCatalyst(.v13),
+        .macCatalyst(.v15),
     ],
     products: [
         .library(name: "CallableKit", targets: ["CallableKit"]),
